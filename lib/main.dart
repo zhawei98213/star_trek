@@ -18,12 +18,12 @@ void main() async {
     ),
   );
   
-  // 设置首选方向（支持横屏和竖屏）
+  // 设置首选方向（优先横屏，适配iPad）
   await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
   ]);
   
   runApp(const StartTrekApp());
@@ -51,7 +51,7 @@ class StartTrekApp extends StatelessWidget {
         return MediaQuery(
           // 禁用系统字体缩放，确保UI一致性
           data: MediaQuery.of(context).copyWith(
-            textScaleFactor: 1.0,
+            textScaler: TextScaler.linear(1.0),
           ),
           child: child ?? const SizedBox.shrink(),
         );

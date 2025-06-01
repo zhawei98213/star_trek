@@ -73,6 +73,12 @@ class AppTheme {
   static const double spacingMedium = 16.0;
   static const double spacingLarge = 24.0;
   static const double spacingXLarge = 32.0;
+  static const double spacingXXLarge = 48.0;
+  
+  // iPad横屏适配间距
+  static const double tabletHorizontalPadding = 64.0;
+  static const double tabletVerticalPadding = 32.0;
+  static const double tabletContentMaxWidth = 1200.0;
   
   // 字体大小
   static const double fontSizeSmall = 12.0;
@@ -118,12 +124,10 @@ class AppTheme {
         primary: primaryColor,
         secondary: secondaryColor,
         surface: surfaceColor,
-        background: backgroundColor,
         error: errorColor,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: textPrimaryColor,
-        onBackground: textPrimaryColor,
         onError: Colors.white,
       ),
       
