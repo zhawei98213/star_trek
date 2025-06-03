@@ -17,6 +17,12 @@ class AppConstants {
   static const String keyUserAchievements = 'user_achievements';
   static const String keyAppSettings = 'app_settings';
   
+  // 远端服务器配置
+  static const String apiBaseUrl = 'URL_ADDRESS.starttrek.com';
+
+  // 认证配置
+  static const String authTokenKey = 'auth_token';
+  static const String authRefreshTokenKey = 'auth_refresh_token';
   // 游戏配置
   static const int pointsPerCorrectAnswer = 10;
   static const int pointsPerCompletedLesson = 50;
@@ -36,6 +42,8 @@ class AppConstants {
   // 学习配置
   static const int maxDailyLessons = 5;
   static const int minCorrectAnswersToPass = 3;
+  static const int pointsPerLevel = 100;
+  static const int defaultDailyGoalMinutes = 30;
   
   // 年龄分组
   static const List<String> ageGroups = [
