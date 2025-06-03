@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/learning/presentation/pages/learning_page.dart';
+import '../../features/learning/presentation/pages/lesson_detail_page.dart';
 
 /// 应用路由配置
 /// 定义应用中所有页面的路由规则
@@ -38,6 +40,25 @@ class AppRouter {
           path: home,
           name: 'home',
           builder: (context, state) => const HomePage(),
+        ),
+        
+        // Learning routes
+        GoRoute(
+          path: '/learning/:userId',
+          name: 'learning',
+          builder: (context, state) {
+            final userId = state.pathParameters['userId']!;
+            return LearningPage(userId: userId);
+          },
+        ),
+        
+        GoRoute(
+          path: '/lesson/:lessonId',
+          name: 'lesson_detail',
+          builder: (context, state) {
+            final lessonId = state.pathParameters['lessonId']!;
+            return LessonDetailPage(lessonId: lessonId);
+          },
         ),
         
         // TODO: 添加其他页面路由
