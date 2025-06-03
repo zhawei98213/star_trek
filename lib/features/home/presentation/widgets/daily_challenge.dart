@@ -102,7 +102,7 @@ class DailyChallenge extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
         boxShadow: AppTheme.cardShadow,
         border: challenge.isCompleted
-            ? Border.all(color: AppTheme.successColor.withOpacity(0.3), width: 2)
+            ? Border.all(color: AppTheme.successColor.withValues(alpha: 0.3), width: 2)
             : null,
       ),
       child: Column(
@@ -115,7 +115,7 @@ class DailyChallenge extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: challenge.color.withOpacity(0.1),
+                  color: challenge.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
                 ),
                 child: Icon(
@@ -168,7 +168,7 @@ class DailyChallenge extends StatelessWidget {
                   vertical: AppTheme.spacingXSmall,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.secondaryColor.withOpacity(0.1),
+                  color: AppTheme.secondaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.borderRadiusSmall),
                 ),
                 child: Row(
@@ -266,10 +266,10 @@ class DailyChallenge extends StatelessWidget {
                 vertical: AppTheme.spacingMedium,
               ),
               decoration: BoxDecoration(
-                color: AppTheme.successColor.withOpacity(0.1),
+                color: AppTheme.successColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppTheme.borderRadiusSmall),
                 border: Border.all(
-                  color: AppTheme.successColor.withOpacity(0.3),
+                  color: AppTheme.successColor.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(

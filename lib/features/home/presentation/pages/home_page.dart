@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/widgets/bottom_navigation.dart';
@@ -111,7 +112,9 @@ class _HomePageState extends State<HomePage>
               padding: EdgeInsets.symmetric(
                 horizontal: ResponsiveUtils.getHorizontalPadding(context),
               ),
-              child: const QuickActions(),
+              child: QuickActions(
+                onLearningTap: () => context.go('/learning'),
+              ),
             ),
           ),
           
@@ -121,7 +124,9 @@ class _HomePageState extends State<HomePage>
               padding: EdgeInsets.symmetric(
                 horizontal: ResponsiveUtils.getHorizontalPadding(context),
               ),
-              child: const LearningProgress(),
+              child: LearningProgress(
+                onViewDetailsTap: () => context.go('/learning'),
+              ),
             ),
           ),
           
@@ -360,7 +365,7 @@ class _TabletSidebar extends StatelessWidget {
           ),
         ),
         selected: isSelected,
-        selectedTileColor: AppTheme.primaryColor.withOpacity(0.1),
+        selectedTileColor: AppTheme.primaryColor.copyWith(opacity: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
         ),

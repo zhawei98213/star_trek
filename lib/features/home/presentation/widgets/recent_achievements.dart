@@ -83,13 +83,13 @@ class RecentAchievements extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            latestAchievement.color.withOpacity(0.1),
-            latestAchievement.color.withOpacity(0.05),
+            latestAchievement.color.withValues(alpha:0.1),
+            latestAchievement.color.withValues(alpha:0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
         border: Border.all(
-          color: latestAchievement.color.withOpacity(0.2),
+          color: latestAchievement.color.withValues(alpha:0.2),
           width: 1,
         ),
       ),
@@ -151,7 +151,7 @@ class RecentAchievements extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
                   boxShadow: [
                     BoxShadow(
-                      color: latestAchievement.color.withOpacity(0.3),
+                      color: latestAchievement.color.withValues(alpha:0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -293,10 +293,10 @@ class RecentAchievements extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppTheme.spacingMedium),
         decoration: BoxDecoration(
-          color: achievement.color.withOpacity(0.1),
+          color: achievement.color.withValues(alpha:0.1),
           borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
           border: Border.all(
-            color: achievement.color.withOpacity(0.2),
+            color: achievement.color.withValues(alpha:0.2),
           ),
         ),
         child: Column(
@@ -370,9 +370,9 @@ class RecentAchievements extends StatelessWidget {
         vertical: 2,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(AppTheme.borderRadiusSmall),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha:0.3)),
       ),
       child: Text(
         text,
@@ -405,7 +405,7 @@ class RecentAchievements extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
                 boxShadow: [
                   BoxShadow(
-                    color: achievement.color.withOpacity(0.3),
+                    color: achievement.color.withValues(alpha:0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -445,7 +445,7 @@ class RecentAchievements extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppTheme.spacingMedium),
               decoration: BoxDecoration(
-                color: AppTheme.secondaryColor.withOpacity(0.1),
+                color: AppTheme.secondaryColor.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(AppTheme.borderRadiusSmall),
               ),
               child: Row(

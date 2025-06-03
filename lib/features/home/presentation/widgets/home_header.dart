@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// 主页头部组件
@@ -72,7 +70,7 @@ class HomeHeader extends StatelessWidget {
                           Text(
                             '等级 5 · 积分 1250',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                             ),
                           ),
                         ],
@@ -179,7 +177,7 @@ class HomeHeader extends StatelessWidget {
         Text(
           message,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
           ),
         ),
       ],
@@ -191,10 +189,10 @@ class HomeHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingMedium),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -214,7 +212,7 @@ class HomeHeader extends StatelessWidget {
           Container(
             width: 1,
             height: 40,
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
           ),
           
           // 连续学习天数
@@ -231,7 +229,7 @@ class HomeHeader extends StatelessWidget {
           Container(
             width: 1,
             height: 40,
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
           ),
           
           // 完成课程数
@@ -273,7 +271,7 @@ class HomeHeader extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
             fontSize: 10,
           ),
         ),
@@ -364,7 +362,7 @@ class HomeHeader extends StatelessWidget {
       padding: const EdgeInsets.all(AppTheme.spacingMedium),
       decoration: BoxDecoration(
         color: isUnread
-            ? AppTheme.primaryColor.withOpacity(0.05)
+            ? AppTheme.primaryColor.withValues(alpha: 0.05)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(AppTheme.borderRadiusSmall),
         border: Border.all(

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// 快捷操作组件
 /// 提供主要功能的快速入口
 class QuickActions extends StatelessWidget {
-  const QuickActions({super.key});
+  final VoidCallback? onLearningTap;
+  
+  const QuickActions({
+    super.key,
+    this.onLearningTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +47,11 @@ class QuickActions extends StatelessWidget {
               subtitle: '继续你的英语之旅',
               color: AppTheme.primaryColor,
               gradient: AppTheme.primaryGradient,
-              onTap: () {
-              // TODO: 导航到课程页面
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('课程页面开发中')),
-              );
-            },
+              onTap: onLearningTap ?? () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('课程页面开发中')),
+                );
+              },
             ),
             
             // 每日挑战
@@ -117,7 +119,7 @@ class QuickActions extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
+              color: color.withValues(alpha: 0.3),
               offset: const Offset(0, 4),
               blurRadius: 12,
               spreadRadius: 0,
@@ -140,7 +142,7 @@ class QuickActions extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(
                         AppTheme.borderRadiusSmall,
                       ),
@@ -167,7 +169,7 @@ class QuickActions extends StatelessWidget {
                       Text(
                         subtitle,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 11,
                         ),
                         maxLines: 2,
@@ -198,7 +200,7 @@ class QuickActions extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppTheme.secondaryColor.withOpacity(0.1),
+                color: AppTheme.secondaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppTheme.borderRadiusSmall),
               ),
               child: const Icon(
@@ -278,12 +280,12 @@ class QuickActions extends StatelessWidget {
       padding: const EdgeInsets.all(AppTheme.spacingSmall),
       decoration: BoxDecoration(
         color: isCompleted
-            ? AppTheme.successColor.withOpacity(0.1)
+            ? AppTheme.successColor.withValues(alpha: 0.1)
             : AppTheme.backgroundColor,
         borderRadius: BorderRadius.circular(AppTheme.borderRadiusSmall),
         border: Border.all(
           color: isCompleted
-              ? AppTheme.successColor.withOpacity(0.3)
+              ? AppTheme.successColor.withValues(alpha: 0.3)
               : AppTheme.borderColor,
         ),
       ),
@@ -436,7 +438,7 @@ class QuickActions extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppTheme.successColor.withOpacity(0.1),
+                color: AppTheme.successColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppTheme.borderRadiusSmall),
               ),
               child: Icon(

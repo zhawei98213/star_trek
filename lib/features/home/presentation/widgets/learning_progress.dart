@@ -4,7 +4,12 @@ import '../../../../core/theme/app_theme.dart';
 /// 学习进度组件
 /// 显示用户的学习进度和统计信息
 class LearningProgress extends StatelessWidget {
-  const LearningProgress({super.key});
+  final VoidCallback? onViewDetailsTap;
+  
+  const LearningProgress({
+    super.key,
+    this.onViewDetailsTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -252,11 +257,46 @@ class LearningProgress extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '技能分析',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '技能分析',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (onViewDetailsTap != null)
+              TextButton(
+                onPressed: onViewDetailsTap,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingSmall,
+                    vertical: AppTheme.spacingXSmall,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '查看详情',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spacingXSmall),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 12,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
         
         const SizedBox(height: AppTheme.spacingMedium),
@@ -278,7 +318,7 @@ class LearningProgress extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: skill.color.withOpacity(0.1),
+              color: skill.color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppTheme.borderRadiusSmall),
             ),
             child: Icon(
