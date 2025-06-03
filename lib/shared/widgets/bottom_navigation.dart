@@ -20,7 +20,7 @@ class AppBottomNavigation extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Color.fromRGBO(0, 0, 0, 0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -204,7 +204,12 @@ class AppBottomNavigationWithFAB extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.3),
+            color: Color.fromRGBO(
+              AppTheme.primaryColor.red,
+              AppTheme.primaryColor.green, 
+              AppTheme.primaryColor.blue,
+              0.3
+            ),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
