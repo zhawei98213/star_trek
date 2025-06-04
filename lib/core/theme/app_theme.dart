@@ -120,15 +120,16 @@ class AppTheme {
       dividerColor: dividerColor,
 
       // 颜色方案
-      colorScheme: const ColorScheme.light(
+      colorScheme: const ColorScheme(
+        brightness: Brightness.light,
         primary: primaryColor,
-        secondary: secondaryColor,
-        surface: surfaceColor,
-        error: errorColor,
         onPrimary: Colors.white,
+        secondary: secondaryColor,
         onSecondary: Colors.white,
-        onSurface: textPrimaryColor,
+        error: errorColor,
         onError: Colors.white,
+        surface: surfaceColor,
+        onSurface: textPrimaryColor,
       ),
 
       // 应用栏主题
