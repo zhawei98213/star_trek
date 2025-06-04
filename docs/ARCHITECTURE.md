@@ -44,7 +44,20 @@ graph TB
     O[Testing] --> P[Unit Tests]
     O --> Q[Widget Tests]
     O --> R[Integration Tests]
+    
+    S[Theme System] --> T[AppColorScheme]
+    S --> U[Material 3]
+    S --> V[Multi-Theme Support]
 ```
+
+### 🎨 主题系统架构
+
+主题系统采用了模块化设计，支持多种星际主题：
+
+- **AppColorScheme**: 自定义颜色方案枚举（避免与Flutter ColorScheme冲突）
+- **ThemeManager**: 主题管理器，负责主题切换和持久化
+- **多主题支持**: 星际舰队、企业号、克林贡、瓦肯、罗慕兰主题
+- **Material 3**: 基于最新Material Design 3规范
 
 ## 🏛 分层架构
 
