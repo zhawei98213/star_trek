@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// 主页头部组件
@@ -33,10 +34,7 @@ class HomeHeader extends StatelessWidget {
                       // 头像
                       GestureDetector(
                         onTap: () {
-                        // TODO: 导航到个人资料页面
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('个人资料页面开发中')),
-                        );
+                        context.go('/profile');
                       },
                         child: Container(
                           width: 50,
@@ -114,10 +112,7 @@ class HomeHeader extends StatelessWidget {
                       // 设置按钮
                       IconButton(
                         onPressed: () {
-                        // TODO: 导航到设置页面
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('设置页面开发中')),
-                        );
+                        context.go('/settings');
                       },
                         icon: const Icon(
                           Icons.settings_outlined,

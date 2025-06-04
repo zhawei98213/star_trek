@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
@@ -8,6 +9,8 @@ import '../widgets/quick_actions.dart';
 import '../widgets/learning_progress.dart';
 import '../widgets/daily_challenge.dart';
 import '../widgets/recent_achievements.dart';
+import '../../../learning/domain/usecases/get_learning_progress_usecase.dart';
+import '../../../learning/data/repositories/learning_repository_impl.dart';
 
 /// 主页面
 /// 应用的核心导航中心，展示学习进度、快捷操作等
@@ -56,8 +59,36 @@ class _HomePageState extends State<HomePage>
 
   /// 加载用户数据
   Future<void> _loadUserData() async {
-    // TODO: 实现用户数据加载逻辑
-    // 从本地存储或服务器获取用户信息、学习进度等
+    try {
+      // 获取当前用户ID（这里使用默认用户ID，实际应用中应从认证系统获取）
+      const String currentUserId = 'default_user';
+      
+      // 使用学习进度用例获取用户数据
+      final GetLearningProgressUseCase getLearningProgressUseCase = 
+          GetLearningProgressUseCase(
+            context.read<LearningRepositoryImpl>(),
+          );
+      
+      final progress = await getLearningProgressUseCase.execute(currentUserId);
+      
+      // 更新UI状态（如果需要的话）
+      if (mounted) {
+        setState(() {
+          // 使用获取到的进度数据
+          debugPrint('用户学习进度已加载: ${progress.toString()}');
+        });
+      }
+    } catch (e) {
+      // 错误处理
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('加载用户数据失败: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   /// 刷新数据
@@ -365,7 +396,7 @@ class _TabletSidebar extends StatelessWidget {
           ),
         ),
         selected: isSelected,
-        selectedTileColor: AppTheme.primaryColor.copyWith(opacity: 0.1),
+        selectedTileColor: AppTheme.primaryColor.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
         ),

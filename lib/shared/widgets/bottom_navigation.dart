@@ -107,7 +107,7 @@ class AppBottomNavigation extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: isSelected 
-              ? AppTheme.primaryColor.withOpacity(0.1)
+              ? AppTheme.primaryColor.withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
         ),
@@ -205,9 +205,9 @@ class AppBottomNavigationWithFAB extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Color.fromRGBO(
-              AppTheme.primaryColor.red,
-              AppTheme.primaryColor.green, 
-              AppTheme.primaryColor.blue,
+              (AppTheme.primaryColor.r * 255.0).round() & 0xff,
+              (AppTheme.primaryColor.g * 255.0).round() & 0xff, 
+              (AppTheme.primaryColor.b * 255.0).round() & 0xff,
               0.3
             ),
             blurRadius: 12,
@@ -296,7 +296,7 @@ class AppBottomNavigationWithFAB extends StatelessWidget {
                   color: AppTheme.warningColor,
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: 导航到每日挑战
+                    context.go('/challenge');
                   },
                 ),
                 _buildQuickActionItem(
@@ -306,7 +306,7 @@ class AppBottomNavigationWithFAB extends StatelessWidget {
                   color: AppTheme.successColor,
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: 导航到复习模式
+                    context.go('/review');
                   },
                 ),
                 _buildQuickActionItem(
@@ -361,10 +361,10 @@ class AppBottomNavigationWithFAB extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
           border: Border.all(
-            color: color.withOpacity(0.2),
+            color: color.withValues(alpha: 0.2),
           ),
         ),
         child: Column(

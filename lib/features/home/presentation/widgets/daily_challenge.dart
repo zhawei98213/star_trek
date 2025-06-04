@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// 每日挑战组件
@@ -24,7 +25,7 @@ class DailyChallenge extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                // TODO: 导航到挑战页面
+                context.go('/challenge');
               },
               child: Text(
                 '查看全部',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// 最近成就组件
@@ -24,7 +25,7 @@ class RecentAchievements extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                // TODO: 导航到成就页面
+                context.go('/achievements');
               },
               child: Text(
                 '查看全部',

@@ -49,7 +49,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   audioplayers_darwin: ccf9c770ee768abb07e26d90af093f7bab1c12ab
   device_info_plus: 335f3ce08d2e174b9fdc3db3db0f4e3b1f66bd89
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_tts: b88dbc8655d3dc961bc4a796e4e16a4cc1795833
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../bloc/learning_bloc.dart';
 import '../widgets/learning_header.dart';
 import '../widgets/progress_overview.dart';
@@ -375,31 +376,31 @@ class _LearningPageState extends State<LearningPage>
   // ==================== Navigation Methods ====================
   
   void _navigateToProfile(BuildContext context) {
-    // TODO: 导航到个人资料页面
+    context.go('/profile');
   }
   
   void _navigateToSettings(BuildContext context) {
-    // TODO: 导航到设置页面
+    context.go('/settings');
   }
   
   void _navigateToSearch(BuildContext context) {
-    // TODO: 导航到搜索页面
+    context.go('/search');
   }
   
   void _navigateToBookmarks(BuildContext context) {
-    // TODO: 导航到收藏页面
+    context.go('/favorites');
   }
   
   void _navigateToLesson(BuildContext context, LessonEntity lesson) {
-    // TODO: 导航到课程详情页面
+    context.go('/courses');
   }
   
   void _navigateToAllLessons(BuildContext context) {
-    // TODO: 导航到所有课程页面
+    context.go('/courses');
   }
   
   void _navigateToDetailedStats(BuildContext context) {
-    // TODO: 导航到详细统计页面
+    context.go('/statistics');
   }
   
 }

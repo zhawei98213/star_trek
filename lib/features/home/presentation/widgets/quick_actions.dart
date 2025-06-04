@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// 快捷操作组件
@@ -89,11 +90,8 @@ class QuickActions extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
               onTap: () {
-              // TODO: 导航到商店页面
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('商店页面开发中')),
-              );
-            },
+                context.go('/shop');
+              },
             ),
           ],
         ),
@@ -255,10 +253,7 @@ class QuickActions extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // TODO: 导航到课程页面
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('课程页面开发中')),
-            );
+              context.go('/courses');
             },
             child: const Text('开始挑战'),
           ),

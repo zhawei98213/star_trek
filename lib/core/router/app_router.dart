@@ -13,7 +13,16 @@ class AppRouter {
   static const String splash = '/';
   static const String onboarding = '/onboarding';
   static const String home = '/home';
-  // TODO: 添加其他页面路径常量
+  static const String profile = '/profile';
+  static const String settings = '/settings';
+  static const String search = '/search';
+  static const String favorites = '/favorites';
+  static const String achievements = '/achievements';
+  static const String challenge = '/challenge';
+  static const String review = '/review';
+  static const String shop = '/shop';
+  static const String courses = '/courses';
+  static const String statistics = '/statistics';
   
   /// 创建路由配置
   static GoRouter createRouter() {
@@ -61,7 +70,205 @@ class AppRouter {
           },
         ),
         
-        // TODO: 添加其他页面路由
+        // 个人资料页
+        GoRoute(
+          path: profile,
+          name: 'profile',
+          builder: (context, state) => const Scaffold(
+            appBar: null,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.person, size: 64, color: Colors.blue),
+                  SizedBox(height: 16),
+                  Text('个人资料页面', style: TextStyle(fontSize: 24)),
+                  Text('功能开发中...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // 设置页
+        GoRoute(
+          path: settings,
+          name: 'settings',
+          builder: (context, state) => const Scaffold(
+            appBar: null,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.settings, size: 64, color: Colors.blue),
+                  SizedBox(height: 16),
+                  Text('设置页面', style: TextStyle(fontSize: 24)),
+                  Text('功能开发中...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // 搜索页
+        GoRoute(
+          path: search,
+          name: 'search',
+          builder: (context, state) => const Scaffold(
+            appBar: null,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.search, size: 64, color: Colors.blue),
+                  SizedBox(height: 16),
+                  Text('搜索页面', style: TextStyle(fontSize: 24)),
+                  Text('功能开发中...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // 收藏页
+        GoRoute(
+          path: favorites,
+          name: 'favorites',
+          builder: (context, state) => const Scaffold(
+            appBar: null,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.favorite, size: 64, color: Colors.red),
+                  SizedBox(height: 16),
+                  Text('收藏页面', style: TextStyle(fontSize: 24)),
+                  Text('功能开发中...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // 成就页
+        GoRoute(
+          path: achievements,
+          name: 'achievements',
+          builder: (context, state) => const Scaffold(
+            appBar: null,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.emoji_events, size: 64, color: Colors.amber),
+                  SizedBox(height: 16),
+                  Text('成就页面', style: TextStyle(fontSize: 24)),
+                  Text('功能开发中...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // 挑战页
+        GoRoute(
+          path: challenge,
+          name: 'challenge',
+          builder: (context, state) => const Scaffold(
+            appBar: null,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.sports_esports, size: 64, color: Colors.green),
+                  SizedBox(height: 16),
+                  Text('每日挑战页面', style: TextStyle(fontSize: 24)),
+                  Text('功能开发中...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // 复习页
+        GoRoute(
+          path: review,
+          name: 'review',
+          builder: (context, state) => const Scaffold(
+            appBar: null,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.refresh, size: 64, color: Colors.purple),
+                  SizedBox(height: 16),
+                  Text('复习模式页面', style: TextStyle(fontSize: 24)),
+                  Text('功能开发中...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // 商店页
+        GoRoute(
+          path: shop,
+          name: 'shop',
+          builder: (context, state) => const Scaffold(
+            appBar: null,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.store, size: 64, color: Colors.orange),
+                  SizedBox(height: 16),
+                  Text('商店页面', style: TextStyle(fontSize: 24)),
+                  Text('功能开发中...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // 课程列表页
+        GoRoute(
+          path: courses,
+          name: 'courses',
+          builder: (context, state) => const Scaffold(
+            appBar: null,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.school, size: 64, color: Colors.indigo),
+                  SizedBox(height: 16),
+                  Text('所有课程页面', style: TextStyle(fontSize: 24)),
+                  Text('功能开发中...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // 统计页
+        GoRoute(
+          path: statistics,
+          name: 'statistics',
+          builder: (context, state) => const Scaffold(
+            appBar: null,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.analytics, size: 64, color: Colors.teal),
+                  SizedBox(height: 16),
+                  Text('详细统计页面', style: TextStyle(fontSize: 24)),
+                  Text('功能开发中...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ),
+        ),
       ],
       
       // 错误页面处理

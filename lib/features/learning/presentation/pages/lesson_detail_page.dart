@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../bloc/learning_bloc.dart';
 import '../../domain/entities/lesson_entity.dart';
 
@@ -680,24 +681,12 @@ class _LessonDetailPageState extends State<LessonDetailPage> {
   
   /// 开始学习
   void _startLearning() {
-    // TODO: 导航到学习界面
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('开始学习功能开发中...'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    context.go('/learning');
   }
   
   /// 开始特定内容
   void _startContent(LessonContentEntity content) {
-    // TODO: 导航到具体内容学习界面
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('开始学习: ${content.title}'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    context.go('/learning');
   }
   
   // ==================== Helper Methods ====================
