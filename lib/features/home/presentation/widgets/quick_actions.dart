@@ -374,7 +374,8 @@ class QuickActions extends StatelessWidget {
                     subtitle: '复习已学过的单词',
                     onTap: () {
                       Navigator.of(context).pop();
-                      // TODO: 跳转到单词复习页面
+                      // 跳转到单词复习页面
+                      context.go('/learning/vocabulary/review');
                     },
                   ),
                   _buildReviewOption(
@@ -384,7 +385,8 @@ class QuickActions extends StatelessWidget {
                     subtitle: '重新练习听力内容',
                     onTap: () {
                       Navigator.of(context).pop();
-                      // TODO: 跳转到听力复习页面
+                      // 跳转到听力复习页面
+                      context.go('/learning/listening/review');
                     },
                   ),
                   _buildReviewOption(
@@ -394,7 +396,8 @@ class QuickActions extends StatelessWidget {
                     subtitle: '重新阅读学过的文章',
                     onTap: () {
                       Navigator.of(context).pop();
-                      // TODO: 跳转到阅读复习页面
+                      // 跳转到阅读复习页面
+                      context.go('/learning/reading/review');
                     },
                   ),
                 ],

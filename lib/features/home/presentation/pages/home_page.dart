@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
@@ -9,8 +9,8 @@ import '../widgets/quick_actions.dart';
 import '../widgets/learning_progress.dart';
 import '../widgets/daily_challenge.dart';
 import '../widgets/recent_achievements.dart';
-import '../../../learning/domain/usecases/get_learning_progress_usecase.dart';
-import '../../../learning/data/repositories/learning_repository_impl.dart';
+import '../bloc/home_bloc.dart';
+
 
 /// 主页面
 /// 应用的核心导航中心，展示学习进度、快捷操作等
@@ -58,52 +58,21 @@ class _HomePageState extends State<HomePage>
   }
 
   /// 加载用户数据
-  Future<void> _loadUserData() async {
-    try {
-      // 获取当前用户ID（这里使用默认用户ID，实际应用中应从认证系统获取）
-      const String currentUserId = 'default_user';
-      
-      // 使用学习进度用例获取用户数据
-      final GetLearningProgressUseCase getLearningProgressUseCase = 
-          GetLearningProgressUseCase(
-            context.read<LearningRepositoryImpl>(),
-          );
-      
-      final progress = await getLearningProgressUseCase.execute(currentUserId);
-      
-      // 更新UI状态（如果需要的话）
-      if (mounted) {
-        setState(() {
-          // 使用获取到的进度数据
-          debugPrint('用户学习进度已加载: ${progress.toString()}');
-        });
-      }
-    } catch (e) {
-      // 错误处理
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('加载用户数据失败: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+  void _loadUserData() {
+    // 获取当前用户ID（这里使用默认用户ID，实际应用中应从认证系统获取）
+    const String currentUserId = 'default_user';
+    
+    // 使用Bloc加载主页数据
+    context.read<HomeBloc>().add(InitializeHomeEvent(currentUserId));
   }
 
   /// 刷新数据
   Future<void> _refreshData() async {
-    await _loadUserData();
-    // 显示刷新完成提示
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('数据已更新'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
+    const String currentUserId = 'default_user';
+    context.read<HomeBloc>().add(RefreshHomeDataEvent(currentUserId));
   }
+  
+
 
   @override
   Widget build(BuildContext context) {
@@ -112,11 +81,39 @@ class _HomePageState extends State<HomePage>
     
     return Scaffold(
       body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: isTabletLandscape 
-              ? _buildTabletLandscapeLayout(context)
-              : _buildMobileLayout(context),
+        child: BlocConsumer<HomeBloc, HomeState>(
+          listener: (context, state) {
+            if (state is HomeError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            } else if (state is HomeOperationSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            } else if (state is NotificationUpdated) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('通知已更新 (${state.unreadCount} 条未读)'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            return FadeTransition(
+              opacity: _fadeAnimation,
+              child: isTabletLandscape 
+                  ? _buildTabletLandscapeLayout(context, state)
+                  : _buildMobileLayout(context, state),
+            );
+          },
         ),
       ),
       bottomNavigationBar: ResponsiveUtils.shouldShowSidebar(context) 
@@ -126,15 +123,28 @@ class _HomePageState extends State<HomePage>
   }
   
   /// 构建移动端布局
-  Widget _buildMobileLayout(BuildContext context) {
+  Widget _buildMobileLayout(BuildContext context, HomeState state) {
+    if (state is HomeLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: AppTheme.spacingMedium),
+            Text('加载中...'),
+          ],
+        ),
+      );
+    }
+    
     return RefreshIndicator(
       onRefresh: _refreshData,
       color: AppTheme.primaryColor,
       child: CustomScrollView(
         slivers: [
           // 顶部头部区域
-          const SliverToBoxAdapter(
-            child: HomeHeader(),
+          SliverToBoxAdapter(
+            child: const HomeHeader(),
           ),
           
           // 快捷操作区域
@@ -191,7 +201,20 @@ class _HomePageState extends State<HomePage>
   }
   
   /// 构建平板横屏布局
-  Widget _buildTabletLandscapeLayout(BuildContext context) {
+  Widget _buildTabletLandscapeLayout(BuildContext context, HomeState state) {
+    if (state is HomeLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: AppTheme.spacingMedium),
+            Text('加载中...'),
+          ],
+        ),
+      );
+    }
+    
     return Row(
       children: [
         // 左侧导航栏

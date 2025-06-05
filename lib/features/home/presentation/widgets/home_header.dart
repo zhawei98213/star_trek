@@ -82,7 +82,7 @@ class HomeHeader extends StatelessWidget {
                       // 通知按钮
                       IconButton(
                         onPressed: () {
-                          // TODO: 显示通知列表
+                          // 显示通知列表
                           _showNotifications(context);
                         },
                         icon: Stack(

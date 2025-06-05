@@ -300,7 +300,38 @@ class DailyChallenge extends StatelessWidget {
 
   /// 开始挑战
   void _startChallenge(BuildContext context, ChallengeData challenge) {
-    // TODO: 根据挑战类型导航到相应的学习页面
+    // 根据挑战类型导航到相应的学习页面
+    String route;
+    switch (challenge.title) {
+      case '单词学习':
+      case '词汇挑战':
+        route = '/learning/vocabulary';
+        break;
+      case '听力练习':
+      case '听力挑战':
+        route = '/learning/listening';
+        break;
+      case '阅读理解':
+      case '阅读挑战':
+        route = '/learning/reading';
+        break;
+      case '语法练习':
+      case '语法挑战':
+        route = '/learning/grammar';
+        break;
+      case '口语练习':
+      case '口语挑战':
+        route = '/learning/speaking';
+        break;
+      default:
+        route = '/learning';
+        break;
+    }
+    
+    // 导航到对应页面
+    context.go(route);
+    
+    // 显示开始提示
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('开始挑战：${challenge.title}'),
