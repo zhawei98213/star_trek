@@ -500,6 +500,82 @@ P
 o
 ```
 
+### Provider/BLoC 错误调试
+
+#### 常见错误：`Could not find the correct Provider<T> above this Widget`
+
+**问题原因**：
+- Widget 无法在其父级 Widget 树中找到对应的 Provider
+- BLoC 未在依赖注入系统中正确注册
+- MultiBlocProvider 配置缺失或错误
+
+**调试步骤**：
+
+1. **检查依赖注入配置**
+   ```dart
+   // 确保在 injection_container.dart 中注册了 BLoC
+   sl.registerFactory(() => HomeBloc(
+     getHomeDataUseCase: sl(),
+     // ... 其他依赖
+   ));
+   ```
+
+2. **检查 MultiBlocProvider 配置**
+   ```dart
+   // 在 main.dart 中确保添加了 BlocProvider
+   MultiBlocProvider(
+     providers: [
+       BlocProvider<HomeBloc>(
+         create: (context) => GetIt.instance<HomeBloc>(),
+       ),
+       // ... 其他 BLoC
+     ],
+     child: MaterialApp.router(...),
+   )
+   ```
+
+3. **检查模块依赖注入初始化**
+   ```dart
+   // 在 main() 函数中确保初始化了模块依赖
+   void main() async {
+     await learning_di.initLearningDependencies();
+     await home_di.initHomeDependencies();  // 确保添加了这行
+     runApp(const StartTrekApp());
+   }
+   ```
+
+4. **验证构造函数参数**
+   ```dart
+   // 确保数据源实现类的构造函数与注册时的参数匹配
+   class HomeLocalDataSourceImpl implements HomeLocalDataSource {
+     // 如果构造函数不需要参数，注册时也不要传参数
+     HomeLocalDataSourceImpl(); // 无参构造函数
+   }
+   
+   // 对应的注册代码
+   sl.registerLazySingleton<HomeLocalDataSource>(
+     () => HomeLocalDataSourceImpl(), // 不传参数
+   );
+   ```
+
+**调试工具**：
+```dart
+// 在 Widget 中添加调试信息
+class MyWidget extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    try {
+      final bloc = context.read<HomeBloc>();
+      print('HomeBloc found: ${bloc.runtimeType}');
+      return YourActualWidget();
+    } catch (e) {
+      print('Provider error: $e');
+      return ErrorWidget(e);
+    }
+  }
+}
+```
+
 ## 📚 学习资源
 
 ### 官方文档

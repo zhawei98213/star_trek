@@ -576,11 +576,13 @@ features/
 ├── home/                    # 首页模块
 │   ├── data/
 │   ├── domain/
-│   └── presentation/
+│   ├── presentation/
+│   └── injection_container.dart  # 依赖注入配置
 ├── learning/                # 学习模块
 │   ├── data/
 │   ├── domain/
-│   └── presentation/
+│   ├── presentation/
+│   └── injection_container.dart  # 依赖注入配置
 ├── profile/                 # 个人资料模块
 │   ├── data/
 │   ├── domain/
@@ -589,6 +591,88 @@ features/
     ├── data/
     ├── domain/
     └── presentation/
+```
+
+### 模块依赖注入
+
+每个功能模块都有独立的依赖注入配置文件，确保模块间的解耦和可测试性。
+
+#### Home模块依赖注入示例
+
+```dart
+// lib/features/home/injection_container.dart
+final sl = GetIt.instance;
+
+/// 初始化主页功能的依赖注入
+Future<void> initHomeDependencies() async {
+  // ==================== Data Sources ====================
+  
+  // Local Data Source
+  sl.registerLazySingleton<HomeLocalDataSource>(
+    () => HomeLocalDataSourceImpl(),
+  );
+  
+  // Remote Data Source
+  sl.registerLazySingleton<HomeRemoteDataSource>(
+    () => HomeRemoteDataSourceImpl(),
+  );
+  
+  // ==================== Repository ====================
+  
+  sl.registerLazySingleton<HomeRepository>(
+    () => HomeRepositoryImpl(
+      localDataSource: sl(),
+      remoteDataSource: sl(),
+    ),
+  );
+  
+  // ==================== Use Cases ====================
+  
+  sl.registerLazySingleton(() => GetHomeDataUseCase(sl()));
+  sl.registerLazySingleton(() => GetUserStatsUseCase(sl()));
+  sl.registerLazySingleton(() => GetNotificationsUseCase(sl()));
+  sl.registerLazySingleton(() => MarkNotificationReadUseCase(sl()));
+  sl.registerLazySingleton(() => RefreshHomeDataUseCase(sl()));
+  
+  // ==================== Bloc ====================
+  
+  sl.registerFactory(() => HomeBloc(
+    getHomeDataUseCase: sl(),
+    getUserStatsUseCase: sl(),
+    getNotificationsUseCase: sl(),
+    markNotificationReadUseCase: sl(),
+    refreshHomeDataUseCase: sl(),
+  ));
+}
+```
+
+#### 主应用中的依赖注入初始化
+
+```dart
+// lib/main.dart
+import 'features/learning/injection_container.dart' as learning_di;
+import 'features/home/injection_container.dart' as home_di;
+
+void main() async {
+  // 初始化依赖注入
+  await learning_di.initLearningDependencies();
+  await home_di.initHomeDependencies();
+  
+  runApp(const StartTrekApp());
+}
+
+// MultiBlocProvider配置
+MultiBlocProvider(
+  providers: [
+    BlocProvider<LearningBloc>(
+      create: (context) => GetIt.instance<LearningBloc>(),
+    ),
+    BlocProvider<HomeBloc>(
+      create: (context) => GetIt.instance<HomeBloc>(),
+    ),
+  ],
+  child: MaterialApp.router(...),
+)
 ```
 
 ### 模块间通信
