@@ -49,6 +49,23 @@
 - 替换`color.red/green/blue`为新的API调用
 - 修复`color.value`的废弃警告
 
+#### 🏠 主页模块Provider错误修复
+- **问题**: `Could not find the correct Provider<HomeBloc> above this HomePage Widget`
+- **根本原因**: HomeBloc未在依赖注入系统中正确注册
+- **解决方案**:
+  - 创建`features/home/injection_container.dart`依赖注入配置文件
+  - 注册HomeBloc及其所有依赖项（数据源、仓库、用例）
+  - 在`main.dart`中初始化Home模块依赖注入
+  - 在MultiBlocProvider中添加HomeBloc注册
+- **修复文件**:
+  - 新增：`lib/features/home/injection_container.dart`
+  - 修改：`lib/main.dart`（添加home模块依赖注入）
+- **技术细节**:
+  - 配置HomeLocalDataSource和HomeRemoteDataSource
+  - 注册HomeRepository实现
+  - 注册所有Home相关UseCase
+  - 修复构造函数参数匹配问题
+
 #### 🎯 功能修复
 - 完善学习页面的参数传递
 - 优化错误处理和加载状态
