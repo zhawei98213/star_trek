@@ -12,6 +12,8 @@ import 'core/utils/logger.dart';
 import 'core/utils/error_handler.dart';
 import 'features/learning/injection_container.dart' as learning_di;
 import 'features/learning/presentation/bloc/learning_bloc.dart';
+import 'features/home/injection_container.dart' as home_di;
+import 'features/home/presentation/bloc/home_bloc.dart';
 
 void main() async {
   // 确保Flutter绑定初始化
@@ -47,6 +49,7 @@ void main() async {
   
   // 初始化依赖注入
   await learning_di.initLearningDependencies();
+  await home_di.initHomeDependencies();
   
   // 设置首选方向（优先横屏，适配iPad）
   await SystemChrome.setPreferredOrientations([
@@ -71,6 +74,9 @@ class StartTrekApp extends StatelessWidget {
       providers: [
         BlocProvider<LearningBloc>(
           create: (context) => GetIt.instance<LearningBloc>(),
+        ),
+        BlocProvider<HomeBloc>(
+          create: (context) => GetIt.instance<HomeBloc>(),
         ),
       ],
       child: ChangeNotifierProvider(
