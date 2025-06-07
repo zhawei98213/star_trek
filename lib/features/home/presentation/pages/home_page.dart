@@ -154,8 +154,8 @@ class _HomePageState extends State<HomePage>
                 horizontal: ResponsiveUtils.getHorizontalPadding(context),
               ),
               child: QuickActions(
-                onLearningTap: () => context.go('/learning'),
-              ),
+              onLearningTap: () => context.go('/learning/default_user'),
+            ),
             ),
           ),
           
@@ -166,7 +166,7 @@ class _HomePageState extends State<HomePage>
                 horizontal: ResponsiveUtils.getHorizontalPadding(context),
               ),
               child: LearningProgress(
-                onViewDetailsTap: () => context.go('/learning'),
+                onViewDetailsTap: () => context.go('/learning/default_user'),
               ),
             ),
           ),
@@ -255,15 +255,19 @@ class _HomePageState extends State<HomePage>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // 左侧：快捷操作
-                            const Expanded(
+                            Expanded(
                               flex: 2,
-                              child: QuickActions(),
+                              child: QuickActions(
+                onLearningTap: () => context.go('/learning/default_user'),
+              ),
                             ),
                             const SizedBox(width: AppTheme.spacingLarge),
                             // 右侧：学习进度
-                            const Expanded(
+                            Expanded(
                               flex: 1,
-                              child: LearningProgress(),
+                              child: LearningProgress(
+                                onViewDetailsTap: () => context.go('/learning'),
+                              ),
                             ),
                           ],
                         ),
@@ -364,31 +368,41 @@ class _TabletSidebar extends StatelessWidget {
                 icon: Icons.home,
                 label: '首页',
                 isSelected: true,
-                onTap: () {},
+                onTap: () {
+                  // 已经在首页，无需跳转
+                },
               ),
               _buildNavItem(
                 context,
                 icon: Icons.school,
                 label: '课程',
-                onTap: () {},
+                onTap: () {
+                  context.go('/learning/default_user');
+                },
               ),
               _buildNavItem(
                 context,
                 icon: Icons.emoji_events,
                 label: '成就',
-                onTap: () {},
+                onTap: () {
+                  context.go('/achievements');
+                },
               ),
               _buildNavItem(
                 context,
                 icon: Icons.store,
                 label: '商店',
-                onTap: () {},
+                onTap: () {
+                  context.go('/shop');
+                },
               ),
               _buildNavItem(
                 context,
                 icon: Icons.settings,
                 label: '设置',
-                onTap: () {},
+                onTap: () {
+                  context.go('/settings');
+                },
               ),
             ],
           ),
