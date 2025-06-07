@@ -256,3 +256,46 @@ class AppTheme {
     return MaterialColor(colorValue, swatch);
   }
 }
+
+/// 应用颜色常量
+/// 提供统一的颜色访问接口
+class AppColors {
+  // 主色调
+  static const Color primary = AppTheme.primaryColor;
+  static const Color primaryLight = AppTheme.primaryLightColor;
+  static const Color primaryDark = AppTheme.primaryDarkColor;
+  
+  // 辅助色调
+  static const Color secondary = AppTheme.secondaryColor;
+  static const Color secondaryLight = AppTheme.secondaryLightColor;
+  static const Color secondaryDark = AppTheme.secondaryDarkColor;
+  
+  // 状态色
+  static const Color success = AppTheme.successColor;
+  static const Color successLight = AppTheme.successLightColor;
+  static const Color warning = AppTheme.warningColor;
+  static const Color warningLight = AppTheme.warningLightColor;
+  static const Color error = AppTheme.errorColor;
+  static const Color errorLight = AppTheme.errorLightColor;
+  
+  // 背景色
+  static const Color background = AppTheme.backgroundColor;
+  static const Color surface = AppTheme.surfaceColor;
+  static const Color card = AppTheme.cardColor;
+  
+  // 文字色
+  static const Color textPrimary = AppTheme.textPrimaryColor;
+  static const Color textSecondary = AppTheme.textSecondaryColor;
+  static const Color textLight = AppTheme.textLightColor;
+  
+  // 边框色
+  static const Color border = AppTheme.borderColor;
+  static const Color divider = AppTheme.dividerColor;
+  
+  // 阴影色
+  static const Color shadow = AppTheme.shadowColor;
+  
+  // 渐变色
+  static const LinearGradient primaryGradient = AppTheme.primaryGradient;
+  static const LinearGradient secondaryGradient = AppTheme.secondaryGradient;
+}
