@@ -230,24 +230,11 @@ class AppRouter {
           ),
         ),
         
-        // 课程列表页
+        // 课程列表页 - 重定向到学习页面
         GoRoute(
           path: courses,
           name: 'courses',
-          builder: (context, state) => const Scaffold(
-            appBar: null,
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.school, size: 64, color: Colors.indigo),
-                  SizedBox(height: 16),
-                  Text('所有课程页面', style: TextStyle(fontSize: 24)),
-                  Text('功能开发中...', style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            ),
-          ),
+          redirect: (context, state) => '/learning/default_user',
         ),
         
         // 统计页
