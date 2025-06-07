@@ -253,7 +253,7 @@ class QuickActions extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              context.go('/courses');
+              context.go('/learning/default_user');
             },
             child: const Text('开始挑战'),
           ),
