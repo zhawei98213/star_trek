@@ -49,6 +49,16 @@ abstract class LearningRemoteDataSource {
     LessonStatus status,
   );
   
+  /// 获取所有课程
+  Future<List<LessonModel>> getAllLessons();
+  
+  /// 解锁课程
+  Future<void> unlockLessons(
+    String userId,
+    LessonType type,
+    DifficultyLevel difficulty,
+  );
+  
   /// 完成课程
   Future<Map<String, dynamic>> completeLesson(
     String userId,
@@ -272,6 +282,22 @@ class LearningRemoteDataSourceImpl implements LearningRemoteDataSource {
   Future<void> unlockAchievement(
     String userId,
     String achievementId,
+  ) async {
+    // TODO: 远程数据源功能暂时未实现，后续统一处理
+    throw UnimplementedError('远程数据源功能暂时未实现，请使用本地数据源');
+  }
+  
+  @override
+  Future<List<LessonModel>> getAllLessons() async {
+    // TODO: 远程数据源功能暂时未实现，后续统一处理
+    throw UnimplementedError('远程数据源功能暂时未实现，请使用本地数据源');
+  }
+  
+  @override
+  Future<void> unlockLessons(
+    String userId,
+    LessonType type,
+    DifficultyLevel difficulty,
   ) async {
     // TODO: 远程数据源功能暂时未实现，后续统一处理
     throw UnimplementedError('远程数据源功能暂时未实现，请使用本地数据源');
