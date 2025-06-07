@@ -187,4 +187,44 @@ abstract class LearningRepository {
   /// [userId] 用户ID
   /// [data] 导入的数据
   Future<void> importUserData(String userId, Map<String, dynamic> data);
+  
+  // ==================== 搜索和统计相关方法 ====================
+  
+  /// 获取所有课程
+  Future<List<LessonEntity>> getAllLessons();
+  
+  /// 获取用户完成的课程列表
+  /// 
+  /// [userId] 用户ID
+  Future<List<LessonEntity>> getCompletedLessons(String userId);
+  
+  /// 获取课程总数
+  Future<int> getTotalLessonsCount();
+  
+  /// 获取用户所有学习记录
+  /// 
+  /// [userId] 用户ID
+  Future<List<DailyStudyRecord>> getAllStudyRecords(String userId);
+  
+  /// 获取指定时间范围内的学习记录
+  /// 
+  /// [userId] 用户ID
+  /// [startDate] 开始日期
+  /// [endDate] 结束日期
+  Future<List<DailyStudyRecord>> getStudyRecordsInRange(
+    String userId,
+    DateTime startDate,
+    DateTime endDate,
+  );
+  
+  /// 根据类型和难度解锁课程
+  /// 
+  /// [userId] 用户ID
+  /// [type] 课程类型
+  /// [difficulty] 难度等级
+  Future<void> unlockLessonsByTypeAndDifficulty(
+    String userId,
+    LessonType type,
+    DifficultyLevel difficulty,
+  );
 }

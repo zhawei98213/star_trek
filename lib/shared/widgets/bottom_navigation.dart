@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 
-/// 底部导航栏组件
+/// 底部部导航栏组件
 /// 提供主要页面之间的导航功能
 class AppBottomNavigation extends StatelessWidget {
   /// 当前选中的索引
@@ -49,7 +49,7 @@ class AppBottomNavigation extends StatelessWidget {
                 icon: Icons.school_outlined,
                 activeIcon: Icons.school,
                 label: '课程',
-                route: '/courses',
+                route: '/learning/default_user',
               ),
               _buildNavItem(
                 context,
@@ -286,7 +286,7 @@ class AppBottomNavigationWithFAB extends StatelessWidget {
                   color: AppTheme.primaryColor,
                   onTap: () {
                     Navigator.pop(context);
-                    context.go('/courses');
+                    context.go('/learning/default_user');
                   },
                 ),
                 _buildQuickActionItem(

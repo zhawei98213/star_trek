@@ -4,9 +4,12 @@ import 'package:http/http.dart' as http;
 
 // Domain
 import 'domain/repositories/learning_repository.dart';
-import 'domain/usecases/get_learning_progress_usecase.dart';
 import 'domain/usecases/get_lessons_usecase.dart';
+import 'domain/usecases/get_learning_progress_usecase.dart';
 import 'domain/usecases/update_lesson_progress_usecase.dart';
+import 'domain/usecases/complete_lesson_usecase.dart';
+import 'domain/usecases/get_learning_statistics_usecase.dart';
+import 'domain/usecases/search_lessons_usecase.dart';
 
 // Data
 import 'data/repositories/learning_repository_impl.dart';
@@ -71,6 +74,10 @@ Future<void> initLearningDependencies() async {
   sl.registerLazySingleton(() => UpdateLessonProgressUseCase(
     sl(),
   ));
+  
+  sl.registerLazySingleton(() => CompleteLessonUseCase(sl()));
+  sl.registerLazySingleton(() => GetLearningStatisticsUseCase(sl()));
+  sl.registerLazySingleton(() => SearchLessonsUseCase(sl()));
   
   // ==================== Bloc ====================
   

@@ -1,653 +1,313 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
-import '../bloc/learning_bloc.dart';
+import 'package:get_it/get_it.dart';
+
 import '../../domain/entities/lesson_entity.dart';
+import '../../domain/usecases/update_lesson_progress_usecase.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../bloc/learning_bloc.dart';
+import '../widgets/lesson_content_widget.dart';
+import '../widgets/lesson_progress_indicator.dart';
+import '../widgets/lesson_actions.dart';
+import '../widgets/lesson_info_card.dart';
+import '../../../../core/widgets/loading_widget.dart';
+import '../../../../core/widgets/error_widget.dart';
 
 /// 课程详情页面
 /// 
-/// 显示课程的详细信息、学习内容和进度
+/// 显示课程的详细信息，包括内容、进度、操作等
 class LessonDetailPage extends StatefulWidget {
   final String lessonId;
+  final LessonEntity? lesson; // 可选的课程实体，用于快速显示
   
   const LessonDetailPage({
     super.key,
     required this.lessonId,
+    this.lesson,
   });
   
   @override
   State<LessonDetailPage> createState() => _LessonDetailPageState();
 }
 
-class _LessonDetailPageState extends State<LessonDetailPage> {
-  LessonEntity? lesson;
+class _LessonDetailPageState extends State<LessonDetailPage>
+    with TickerProviderStateMixin {
+  late final LearningBloc _learningBloc;
+  late final TabController _tabController;
+  late final ScrollController _scrollController;
+  
+  LessonEntity? _currentLesson;
+  bool _isLoading = true;
+  String? _error;
   
   @override
   void initState() {
     super.initState();
-    _loadLessonDetails();
+    _learningBloc = GetIt.instance<LearningBloc>();
+    _tabController = TabController(length: 3, vsync: this);
+    _scrollController = ScrollController();
+    
+    // 如果传入了课程实体，直接使用
+    if (widget.lesson != null) {
+      _currentLesson = widget.lesson;
+      _isLoading = false;
+    } else {
+      // 否则加载课程详情
+      _loadLessonDetail();
+    }
   }
   
-  void _loadLessonDetails() {
-    // 从 Bloc 状态中获取课程详情
-    final state = context.read<LearningBloc>().state;
-    if (state is LearningLoaded) {
-      lesson = state.lessons.firstWhere(
-        (l) => l.id == widget.lessonId,
-        orElse: () => throw Exception('Lesson not found'),
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+  
+  /// 加载课程详情
+  void _loadLessonDetail() {
+    _learningBloc.add(LoadLessonDetailEvent(widget.lessonId));
+  }
+  
+  /// 开始学习课程
+  void _startLesson() {
+    if (_currentLesson != null) {
+      Navigator.of(context).pushNamed(
+        '/lesson-learning',
+        arguments: _currentLesson,
       );
+    }
+  }
+  
+  /// 继续学习课程
+  void _continueLesson() {
+    if (_currentLesson != null) {
+      Navigator.of(context).pushNamed(
+        '/lesson-learning',
+        arguments: _currentLesson,
+      );
+    }
+  }
+  
+  /// 重新学习课程
+  void _restartLesson() {
+    if (_currentLesson != null) {
+      // 重置课程进度
+      _learningBloc.add(UpdateLessonProgressEvent(
+        UpdateProgressParams(
+          userId: 'current_user_id', // TODO: 从用户状态获取实际用户ID
+          lessonId: _currentLesson!.id,
+          progress: 0.0,
+          status: LessonStatus.notStarted,
+          studyTime: 0,
+        ),
+      ));
+      
+      // 跳转到学习页面
+      Navigator.of(context).pushNamed(
+        '/lesson-learning',
+        arguments: _currentLesson,
+      );
+    }
+  }
+  
+  /// 收藏/取消收藏课程
+  void _toggleBookmark() {
+    if (_currentLesson != null) {
+      _learningBloc.add(ToggleLessonBookmarkEvent(_currentLesson!.id));
     }
   }
   
   @override
   Widget build(BuildContext context) {
-    if (lesson == null) {
+    return Scaffold(
+      body: BlocListener<LearningBloc, LearningState>(
+        bloc: _learningBloc,
+        listener: (context, state) {
+          if (state is LearningLoaded) {
+            // 更新课程信息
+            final lesson = state.lessons.firstWhere(
+              (l) => l.id == widget.lessonId,
+              orElse: () => _currentLesson!,
+            );
+            setState(() {
+              _currentLesson = lesson;
+              _isLoading = false;
+              _error = null;
+            });
+          } else if (state is LearningError) {
+            setState(() {
+              _error = state.message;
+              _isLoading = false;
+            });
+          }
+        },
+        child: _buildBody(),
+      ),
+    );
+  }
+  
+  /// 构建页面主体
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: LoadingWidget()),
+      );
+    }
+    
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('课程详情'),
+        ),
+        body: Center(
+          child: CustomErrorWidget(
+            message: _error!,
+            onRetry: _loadLessonDetail,
+          ),
+        ),
+      );
+    }
+    
+    if (_currentLesson == null) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('课程详情'),
         ),
         body: const Center(
-          child: CircularProgressIndicator(),
+          child: Text('课程不存在'),
         ),
       );
     }
     
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // 课程封面和基本信息
-          _buildSliverAppBar(context),
-          
-          // 课程内容
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                // 课程信息卡片
-                _buildLessonInfoCard(context),
-                
-                const SizedBox(height: 16),
-                
-                // 学习进度
-                _buildProgressCard(context),
-                
-                const SizedBox(height: 16),
-                
-                // 课程内容列表
-                _buildContentList(context),
-                
-                const SizedBox(height: 16),
-                
-                // 相关推荐
-                _buildRelatedLessons(context),
-                
-                const SizedBox(height: 100), // 底部间距
-              ],
-            ),
-          ),
-        ],
-      ),
-      
-      // 底部操作栏
-      bottomNavigationBar: _buildBottomActionBar(context),
+    return NestedScrollView(
+      controller: _scrollController,
+      headerSliverBuilder: (context, innerBoxIsScrolled) {
+        return [
+          _buildSliverAppBar(),
+          _buildSliverTabBar(),
+        ];
+      },
+      body: _buildTabBarView(),
     );
   }
   
   /// 构建可折叠的应用栏
-  Widget _buildSliverAppBar(BuildContext context) {
+  Widget _buildSliverAppBar() {
     return SliverAppBar(
       expandedHeight: 300,
       pinned: true,
       flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: _getLessonGradientColors(lesson!.type),
-            ),
-          ),
-          child: Stack(
-            children: [
-              // 背景图案
-              Positioned(
-                right: -50,
-                top: -50,
-                child: Icon(
-                  _getLessonTypeIcon(lesson!.type),
-                  size: 200,
-                  color: Colors.white.withValues(alpha: 0.1),
-                ),
-              ),
-              
-              // 课程基本信息
-              Positioned(
-                left: 20,
-                right: 20,
-                bottom: 40,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 课程类型标签
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        _getLessonTypeText(lesson!.type),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 12),
-                    
-                    // 课程标题
-                    Text(
-                      lesson!.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    // 课程基本信息
-                    Row(
-                      children: [
-                        _buildInfoChip(
-                          icon: Icons.access_time,
-                          text: '${lesson!.estimatedDuration}分钟',
-                        ),
-                        const SizedBox(width: 12),
-                        _buildInfoChip(
-                          icon: Icons.star,
-                          text: _getDifficultyText(lesson!.difficulty),
-                        ),
-                        const SizedBox(width: 12),
-                        _buildInfoChip(
-                          icon: Icons.people,
-                          text: _getAgeGroupText(lesson!.ageGroup),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+        title: Text(
+          _currentLesson!.title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            shadows: [
+              Shadow(
+                offset: Offset(0, 1),
+                blurRadius: 3,
+                color: Colors.black26,
               ),
             ],
           ),
         ),
+        background: _buildLessonHeader(),
       ),
       actions: [
-        // 收藏按钮
         IconButton(
-          onPressed: _toggleFavorite,
           icon: Icon(
-            Icons.favorite_border,
-            color: Colors.white,
+            _currentLesson!.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+            color: _currentLesson!.isBookmarked ? AppColors.primary : null,
           ),
+          onPressed: _toggleBookmark,
         ),
-        
-        // 分享按钮
         IconButton(
-          onPressed: _shareLessson,
-          icon: const Icon(Icons.share, color: Colors.white),
+          icon: const Icon(Icons.share),
+          onPressed: () {
+            // 分享课程
+          },
         ),
       ],
     );
   }
   
-  /// 构建信息标签
-  Widget _buildInfoChip({
-    required IconData icon,
-    required String text,
-  }) {
+  /// 构建课程头部
+  Widget _buildLessonHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 4,
-      ),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: Colors.white,
-            size: 14,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  /// 构建课程信息卡片
-  Widget _buildLessonInfoCard(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '课程介绍',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          Text(
-            lesson!.description,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
-              height: 1.5,
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // 课程描述
-          if (lesson!.description.isNotEmpty) ...[
-            Text(
-              '课程描述',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            
-            const SizedBox(height: 8),
-            
-            Text(
-              lesson!.description,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            
-            const SizedBox(height: 16),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            _getDifficultyColor(_currentLesson!.difficulty).withValues(alpha: 0.8),
+            _getDifficultyColor(_currentLesson!.difficulty).withValues(alpha: 0.6),
           ],
-        ],
-      ),
-    );
-  }
-  
-  /// 构建进度卡片
-  Widget _buildProgressCard(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                '学习进度',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${(lesson!.progress * 100).toInt()}%',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          LinearProgressIndicator(
-            value: lesson!.progress,
-            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              Theme.of(context).colorScheme.primary,
-            ),
-            minHeight: 8,
-          ),
-          
-          const SizedBox(height: 12),
-          
-          Row(
-            children: [
-              Icon(
-                Icons.check_circle,
-                color: lesson!.status == LessonStatus.completed
-                    ? Colors.green
-                    : Theme.of(context).colorScheme.onSurface,
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _getStatusText(lesson!.status),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: lesson!.status == LessonStatus.completed
-                      ? Colors.green
-                      : Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-  
-  /// 构建内容列表
-  Widget _buildContentList(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '课程内容',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          ...lesson!.contents.asMap().entries.map((entry) {
-            final index = entry.key;
-            final content = entry.value;
-            final isCompleted = index < (lesson!.progress * lesson!.contents.length);
-            
-            return _buildContentItem(
-              context,
-              content: content,
-              index: index + 1,
-              isCompleted: isCompleted,
-              onTap: () => _startContent(content),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-  
-  /// 构建内容项
-  Widget _buildContentItem(
-    BuildContext context, {
-    required LessonContentEntity content,
-    required int index,
-    required bool isCompleted,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isCompleted
-              ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isCompleted
-                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)
-                : Colors.transparent,
-          ),
         ),
-        child: Row(
-          children: [
-            // 序号和状态
-            Container(
-              width: 32,
-              height: 32,
+      ),
+      child: Stack(
+        children: [
+          // 背景图片
+          if (_currentLesson!.coverImageUrl != null)
+            Positioned.fill(
+              child: Image.network(
+                _currentLesson!.coverImageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: _getDifficultyColor(_currentLesson!.difficulty),
+                  );
+                },
+              ),
+            ),
+          
+          // 渐变遮罩
+          Positioned.fill(
+            child: Container(
               decoration: BoxDecoration(
-                color: isCompleted
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurface,
-                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.7),
+                  ],
+                ),
               ),
-              child: Center(
-                child: isCompleted
-                    ? const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 16,
-                      )
-                    : Text(
-                        '$index',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-            ),
-            
-            const SizedBox(width: 16),
-            
-            // 内容信息
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    content.title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 4),
-                  
-                  Row(
-                    children: [
-                      Icon(
-                        _getContentTypeIcon(content.type),
-                        size: 14,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _getContentTypeText(content.type),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Icon(
-                        Icons.access_time,
-                        size: 14,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _getContentTypeText(content.type),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            
-            // 播放按钮
-            Icon(
-              Icons.play_arrow,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  /// 构建相关推荐
-  Widget _buildRelatedLessons(BuildContext context) {
-    // 这里应该从 API 获取相关课程
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '相关推荐',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
             ),
           ),
           
-          const SizedBox(height: 16),
-          
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.lightbulb_outline,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    '完成此课程后，我们会为您推荐更多相关内容',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  /// 构建底部操作栏
-  Widget _buildBottomActionBar(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // 进度信息
-          Expanded(
+          // 课程信息
+          Positioned(
+            bottom: 80,
+            left: 20,
+            right: 20,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '进度: ${(lesson!.progress * 100).toInt()}%',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+                // 课程类型和难度标签
+                Row(
+                  children: [
+                    _buildTypeChip(_currentLesson!.type),
+                    const SizedBox(width: 8),
+                    _buildDifficultyChip(_currentLesson!.difficulty),
+                    const SizedBox(width: 8),
+                    _buildAgeGroupChip(_currentLesson!.ageGroup),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                LinearProgressIndicator(
-                  value: lesson!.progress,
-                  backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Theme.of(context).colorScheme.primary,
+                const SizedBox(height: 12),
+                
+                // 课程描述
+                Text(
+                  _currentLesson!.description,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    height: 1.4,
                   ),
-                  minHeight: 4,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
-            ),
-          ),
-          
-          const SizedBox(width: 20),
-          
-          // 开始/继续学习按钮
-          ElevatedButton(
-            onPressed: _startLearning,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 32,
-                vertical: 16,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              lesson!.progress > 0 ? '继续学习' : '开始学习',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
             ),
           ),
         ],
@@ -655,131 +315,277 @@ class _LessonDetailPageState extends State<LessonDetailPage> {
     );
   }
   
-  // ==================== Event Handlers ====================
-  
-  /// 切换收藏状态
-  void _toggleFavorite() {
-    // TODO: 实现收藏功能
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('已添加到收藏'),
-        duration: const Duration(seconds: 2),
+  /// 构建标签页栏
+  Widget _buildSliverTabBar() {
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: _SliverTabBarDelegate(
+        TabBar(
+          controller: _tabController,
+          labelColor: AppColors.primary,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: AppColors.primary,
+          tabs: const [
+            Tab(text: '课程内容'),
+            Tab(text: '学习进度'),
+            Tab(text: '相关信息'),
+          ],
+        ),
       ),
     );
   }
   
-  /// 分享课程
-  void _shareLessson() {
-    // TODO: 实现分享功能
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('分享功能开发中...'),
-        duration: Duration(seconds: 2),
+  /// 构建标签页视图
+  Widget _buildTabBarView() {
+    return TabBarView(
+      controller: _tabController,
+      children: [
+        _buildContentTab(),
+        _buildProgressTab(),
+        _buildInfoTab(),
+      ],
+    );
+  }
+  
+  /// 构建内容标签页
+  Widget _buildContentTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 课程内容列表
+          LessonContentWidget(
+            contents: _currentLesson!.contents,
+            onContentTap: (content) {
+              // 跳转到具体内容
+            },
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // 学习操作按钮
+          LessonActions(
+            lesson: _currentLesson!,
+            onStart: _startLesson,
+            onContinue: _continueLesson,
+            onRestart: _restartLesson,
+          ),
+        ],
       ),
     );
   }
   
-  /// 开始学习
-  void _startLearning() {
-    context.go('/learning');
+  /// 构建进度标签页
+  Widget _buildProgressTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 进度指示器
+          LessonProgressIndicator(
+            lesson: _currentLesson!,
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // 学习统计
+          _buildLearningStats(),
+        ],
+      ),
+    );
   }
   
-  /// 开始特定内容
-  void _startContent(LessonContentEntity content) {
-    context.go('/learning');
+  /// 构建信息标签页
+  Widget _buildInfoTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 课程信息卡片
+          LessonInfoCard(
+            lesson: _currentLesson!,
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // 相关课程推荐
+          _buildRelatedLessons(),
+        ],
+      ),
+    );
   }
   
-  // ==================== Helper Methods ====================
-  
-  /// 获取课程类型渐变色
-  List<Color> _getLessonGradientColors(LessonType type) {
-    switch (type) {
-      case LessonType.alphabet:
-        return [Colors.red.shade400, Colors.red.shade600];
-      case LessonType.numbers:
-        return [Colors.indigo.shade400, Colors.indigo.shade600];
-      case LessonType.shapes:
-        return [Colors.teal.shade400, Colors.teal.shade600];
-      case LessonType.colors:
-        return [Colors.amber.shade400, Colors.amber.shade600];
-      case LessonType.animals:
-        return [Colors.brown.shade400, Colors.brown.shade600];
-      case LessonType.vehicles:
-        return [Colors.grey.shade400, Colors.grey.shade600];
-      case LessonType.food:
-        return [Colors.lime.shade400, Colors.lime.shade600];
-      case LessonType.family:
-        return [Colors.cyan.shade400, Colors.cyan.shade600];
-      case LessonType.bodyParts:
-        return [Colors.deepOrange.shade400, Colors.deepOrange.shade600];
-      case LessonType.dailyItems:
-        return [Colors.lightBlue.shade400, Colors.lightBlue.shade600];
-      case LessonType.video:
-        return [Colors.blue.shade400, Colors.blue.shade600];
-      case LessonType.interactive:
-        return [Colors.purple.shade400, Colors.purple.shade600];
-      case LessonType.quiz:
-        return [Colors.orange.shade400, Colors.orange.shade600];
-      case LessonType.reading:
-        return [Colors.green.shade400, Colors.green.shade600];
-      case LessonType.game:
-        return [Colors.pink.shade400, Colors.pink.shade600];
-    }
+  /// 构建学习统计
+  Widget _buildLearningStats() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '学习统计',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatItem(
+                    '完成次数',
+                    '${_currentLesson!.completionCount}',
+                    Icons.check_circle,
+                    Colors.green,
+                  ),
+                ),
+                Expanded(
+                  child: _buildStatItem(
+                    '最佳分数',
+                    _currentLesson!.bestScore?.toString() ?? '--',
+                    Icons.star,
+                    Colors.amber,
+                  ),
+                ),
+                Expanded(
+                  child: _buildStatItem(
+                    '学习进度',
+                    '${(_currentLesson!.progress * 100).toInt()}%',
+                    Icons.trending_up,
+                    Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
   
-  /// 获取课程类型图标
-  IconData _getLessonTypeIcon(LessonType type) {
-    switch (type) {
-      case LessonType.alphabet:
-        return Icons.abc;
-      case LessonType.numbers:
-        return Icons.numbers;
-      case LessonType.shapes:
-        return Icons.category;
-      case LessonType.colors:
-        return Icons.palette;
-      case LessonType.animals:
-        return Icons.pets;
-      case LessonType.vehicles:
-        return Icons.directions_car;
-      case LessonType.food:
-        return Icons.restaurant;
-      case LessonType.family:
-        return Icons.family_restroom;
-      case LessonType.bodyParts:
-        return Icons.accessibility;
-      case LessonType.dailyItems:
-        return Icons.home;
-      case LessonType.video:
-        return Icons.play_circle_filled;
-      case LessonType.interactive:
-        return Icons.touch_app;
-      case LessonType.quiz:
-        return Icons.quiz;
-      case LessonType.reading:
-        return Icons.menu_book;
-      case LessonType.game:
-        return Icons.games;
-    }
+  /// 构建统计项
+  Widget _buildStatItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          color: color,
+          size: 32,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall,
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+  
+  /// 构建相关课程
+  Widget _buildRelatedLessons() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '相关课程',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // 这里可以显示相关课程列表
+            const Text('暂无相关课程'),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  /// 构建类型标签
+  Widget _buildTypeChip(LessonType type) {
+    return Chip(
+      label: Text(
+        _getLessonTypeText(type),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+        ),
+      ),
+      backgroundColor: _getLessonTypeColor(type),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+  
+  /// 构建难度标签
+  Widget _buildDifficultyChip(DifficultyLevel difficulty) {
+    return Chip(
+      label: Text(
+        _getDifficultyText(difficulty),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+        ),
+      ),
+      backgroundColor: _getDifficultyColor(difficulty),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+  
+  /// 构建年龄组标签
+  Widget _buildAgeGroupChip(AgeGroup ageGroup) {
+    return Chip(
+      label: Text(
+        _getAgeGroupText(ageGroup),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+        ),
+      ),
+      backgroundColor: Colors.grey[600],
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
   }
   
   /// 获取课程类型文本
   String _getLessonTypeText(LessonType type) {
     switch (type) {
       case LessonType.alphabet:
-        return '字母学习';
+        return '字母';
       case LessonType.numbers:
-        return '数字学习';
+        return '数字';
       case LessonType.shapes:
-        return '形状学习';
+        return '形状';
       case LessonType.colors:
-        return '颜色学习';
+        return '颜色';
       case LessonType.animals:
-        return '动物学习';
+        return '动物';
       case LessonType.vehicles:
         return '交通工具';
       case LessonType.food:
-        return '食物学习';
+        return '食物';
       case LessonType.family:
         return '家庭成员';
       case LessonType.bodyParts:
@@ -789,13 +595,49 @@ class _LessonDetailPageState extends State<LessonDetailPage> {
       case LessonType.video:
         return '视频课程';
       case LessonType.interactive:
-        return '互动课程';
+        return '交互式课程';
       case LessonType.quiz:
         return '测验课程';
       case LessonType.reading:
         return '阅读课程';
       case LessonType.game:
         return '游戏课程';
+    }
+  }
+  
+  /// 获取课程类型颜色
+  Color _getLessonTypeColor(LessonType type) {
+    switch (type) {
+      case LessonType.alphabet:
+        return Colors.blue;
+      case LessonType.numbers:
+        return Colors.green;
+      case LessonType.shapes:
+        return Colors.orange;
+      case LessonType.colors:
+        return Colors.purple;
+      case LessonType.animals:
+        return Colors.brown;
+      case LessonType.vehicles:
+        return Colors.indigo;
+      case LessonType.food:
+        return Colors.red;
+      case LessonType.family:
+        return Colors.lightGreen;
+      case LessonType.bodyParts:
+        return Colors.amber;
+      case LessonType.dailyItems:
+        return Colors.cyan;
+      case LessonType.video:
+        return Colors.pink;
+      case LessonType.interactive:
+        return Colors.lightBlue;
+      case LessonType.quiz:
+        return Colors.deepOrange;
+      case LessonType.reading:
+        return Colors.deepPurple;
+      case LessonType.game:
+        return Colors.lime;
     }
   }
   
@@ -811,68 +653,59 @@ class _LessonDetailPageState extends State<LessonDetailPage> {
     }
   }
   
+  /// 获取难度颜色
+  Color _getDifficultyColor(DifficultyLevel difficulty) {
+    switch (difficulty) {
+      case DifficultyLevel.beginner:
+        return Colors.green;
+      case DifficultyLevel.intermediate:
+        return Colors.orange;
+      case DifficultyLevel.advanced:
+        return Colors.red;
+    }
+  }
+  
   /// 获取年龄组文本
   String _getAgeGroupText(AgeGroup ageGroup) {
     switch (ageGroup) {
       case AgeGroup.preschool:
-        return '学前班';
+        return '3-5岁';
       case AgeGroup.elementary:
-        return '小学';
+        return '6-8岁';
       case AgeGroup.middle:
-        return '中学';
-    }
-  }
-
-  String _getContentTypeText(ContentType contentType) {
-    switch (contentType) {
-      case ContentType.text:
-        return '文本';
-      case ContentType.image:
-        return '图片';
-      case ContentType.audio:
-        return '音频';
-      case ContentType.video:
-        return '视频';
-      case ContentType.interactive:
-        return '互动';
-      case ContentType.quiz:
-        return '测验';
-      case ContentType.game:
-        return '游戏';
-    }
-  }
-  
-  /// 获取状态文本
-  String _getStatusText(LessonStatus status) {
-    switch (status) {
-      case LessonStatus.notStarted:
-        return '未开始';
-      case LessonStatus.inProgress:
-        return '学习中';
-      case LessonStatus.completed:
-        return '已完成';
-      case LessonStatus.locked:
-        return '未解锁';
-    }
-  }
-  
-  /// 获取内容类型图标
-  IconData _getContentTypeIcon(ContentType type) {
-    switch (type) {
-      case ContentType.video:
-        return Icons.play_circle_outline;
-      case ContentType.text:
-        return Icons.article;
-      case ContentType.image:
-        return Icons.image;
-      case ContentType.audio:
-        return Icons.headphones;
-      case ContentType.interactive:
-        return Icons.touch_app;
-      case ContentType.quiz:
-        return Icons.quiz;
-      case ContentType.game:
-        return Icons.games;
+        return '9-12岁';
     }
   }
 }
+
+/// 自定义标签栏代理
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar _tabBar;
+  
+  _SliverTabBarDelegate(this._tabBar);
+  
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+  
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: _tabBar,
+    );
+  }
+  
+  @override
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
+    return false;
+  }
+}
+
+/// 扩展LessonEntity以支持收藏状态

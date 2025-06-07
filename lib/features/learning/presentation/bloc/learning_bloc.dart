@@ -100,6 +100,20 @@ class SyncToCloudEvent extends LearningEvent {
   const SyncToCloudEvent(this.userId);
 }
 
+/// 加载课程详情事件
+class LoadLessonDetailEvent extends LearningEvent {
+  final String lessonId;
+
+  const LoadLessonDetailEvent(this.lessonId);
+}
+
+/// 切换课程收藏状态事件
+class ToggleLessonBookmarkEvent extends LearningEvent {
+  final String lessonId;
+
+  const ToggleLessonBookmarkEvent(this.lessonId);
+}
+
 // ==================== States ====================
 
 abstract class LearningState {
@@ -176,6 +190,17 @@ class LearningOperationSuccess extends LearningState {
   final Map<String, dynamic>? data;
   
   const LearningOperationSuccess(this.message, {this.data});
+}
+
+/// 搜索课程成功状态
+class SearchLessonsSuccess extends LearningState {
+  final List<LessonEntity> searchResults;
+  final String searchQuery;
+  
+  const SearchLessonsSuccess({
+    required this.searchResults,
+    required this.searchQuery,
+  });
 }
 
 // ==================== Bloc ====================

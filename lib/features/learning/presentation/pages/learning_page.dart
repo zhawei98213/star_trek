@@ -392,11 +392,11 @@ class _LearningPageState extends State<LearningPage>
   }
   
   void _navigateToLesson(BuildContext context, LessonEntity lesson) {
-    context.go('/courses');
+    context.go('/learning/default_user');
   }
   
   void _navigateToAllLessons(BuildContext context) {
-    context.go('/courses');
+    context.go('/learning/default_user');
   }
   
   void _navigateToDetailedStats(BuildContext context) {
