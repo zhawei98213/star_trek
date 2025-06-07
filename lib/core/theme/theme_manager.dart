@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../config/app_config.dart';
 import '../utils/cache_manager.dart';
 
 /// 主题模式
@@ -230,14 +229,14 @@ class ThemeManager extends ChangeNotifier {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
         selectedItemColor: colorScheme.primary,
-        unselectedItemColor: colorScheme.onSurface.withOpacity(0.6),
+        unselectedItemColor: colorScheme.onSurface.withValues(alpha: 0.6),
       ),
       
       // 导航栏主题
       navigationBarTheme: NavigationBarThemeData(
         elevation: 8,
         indicatorColor: colorScheme.primaryContainer,
-        labelTextStyle: MaterialStateProperty.all(
+        labelTextStyle: WidgetStateProperty.all(
           TextStyle(fontSize: 12, color: colorScheme.onSurface),
         ),
       ),
@@ -260,7 +259,7 @@ class ThemeManager extends ChangeNotifier {
       
       // 分割线主题
       dividerTheme: DividerThemeData(
-        color: colorScheme.outline.withOpacity(0.2),
+        color: colorScheme.outline.withValues(alpha: 0.2),
         thickness: 1,
       ),
       
@@ -348,7 +347,7 @@ class ThemeManager extends ChangeNotifier {
       bodySmall: TextStyle(
         fontSize: 12 * _textScaleFactor,
         fontWeight: FontWeight.w400,
-        color: colorScheme.onSurface.withOpacity(0.8),
+        color: colorScheme.onSurface.withValues(alpha: 0.8),
       ),
       labelLarge: TextStyle(
         fontSize: 14 * _textScaleFactor,
@@ -363,7 +362,7 @@ class ThemeManager extends ChangeNotifier {
       labelSmall: TextStyle(
         fontSize: 11 * _textScaleFactor,
         fontWeight: FontWeight.w500,
-        color: colorScheme.onSurface.withOpacity(0.8),
+        color: colorScheme.onSurface.withValues(alpha: 0.8),
       ),
     );
   }
