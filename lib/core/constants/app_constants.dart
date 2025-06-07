@@ -27,6 +27,9 @@ class AppConstants {
   static const int pointsPerCorrectAnswer = 10;
   static const int pointsPerCompletedLesson = 50;
   static const int pointsPerAchievement = 100;
+  static const int pointsPerBeginnerLesson = 30;
+  static const int pointsPerIntermediateLesson = 50;
+  static const int pointsPerAdvancedLesson = 80;
   
   // 音频配置
   static const double defaultVolume = 0.8;
