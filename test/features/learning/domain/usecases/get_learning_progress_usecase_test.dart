@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
+import 'package:dartz/dartz.dart';
+import 'package:start_trek/core/error/failures.dart';
 import 'package:start_trek/features/learning/domain/entities/learning_progress_entity.dart';
 import 'package:start_trek/features/learning/domain/entities/lesson_entity.dart';
 import 'package:start_trek/features/learning/domain/repositories/learning_repository.dart';
@@ -41,31 +43,37 @@ void main() {
       );
       
       when(mockRepository.getLearningProgress(userId))
-          .thenAnswer((_) async => tLearningProgress);
+          .thenAnswer((_) async => Right(tLearningProgress));
       
       // act
-      final result = await usecase.execute(userId);
+      final result = await usecase.call(userId);
       
       // assert
-      expect(result, tLearningProgress);
-      verify(mockRepository.getLearningProgress(userId));
-      verifyNoMoreInteractions(mockRepository);
-    });
-    
-    test('should throw exception when repository call fails', () async {
-      // arrange
-      const userId = 'test_user_id';
-      when(mockRepository.getLearningProgress(userId))
-          .thenThrow(Exception('Failed to get learning progress'));
-      
-      // act & assert
-      expect(
-        () => usecase.execute(userId),
-        throwsA(isA<Exception>()),
+      result.fold(
+        (failure) => fail('Expected success but got failure: $failure'),
+        (progress) => expect(progress, tLearningProgress),
       );
       verify(mockRepository.getLearningProgress(userId));
       verifyNoMoreInteractions(mockRepository);
     });
+    
+    test('should return failure when repository call fails', () async {
+      // arrange
+      const userId = 'test_user_id';
+      when(mockRepository.getLearningProgress(userId))
+          .thenAnswer((_) async => Left(ServerFailure('Failed to get learning progress')));
+      
+      // act
+      final result = await usecase.call(userId);
+      
+      // assert
+      result.fold(
+         (failure) => expect(failure, isA<ServerFailure>()),
+         (progress) => fail('Expected failure but got success: $progress'),
+       );
+       verify(mockRepository.getLearningProgress(userId));
+       verifyNoMoreInteractions(mockRepository);
+     });
     
     test('should calculate progress percentage correctly', () async {
       // arrange
@@ -89,13 +97,16 @@ void main() {
       );
       
       when(mockRepository.getLearningProgress(userId))
-          .thenAnswer((_) async => tLearningProgress);
+          .thenAnswer((_) async => Right(tLearningProgress));
       
       // act
-      final result = await usecase.execute(userId);
+      final result = await usecase.call(userId);
       
       // assert
-      expect(result.overallProgress, 0.75); // 15/20 = 0.75
+      result.fold(
+        (failure) => fail('Expected success but got failure: $failure'),
+        (progress) => expect(progress.overallProgress, 0.75), // 15/20 = 0.75
+      );
       verify(mockRepository.getLearningProgress(userId));
       verifyNoMoreInteractions(mockRepository);
     });

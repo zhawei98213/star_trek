@@ -1,3 +1,5 @@
+import 'package:dartz/dartz.dart';
+import '../../../../core/error/failures.dart';
 import '../entities/lesson_entity.dart';
 import '../entities/learning_progress_entity.dart';
 
@@ -12,7 +14,7 @@ abstract class LearningRepository {
   /// [ageGroup] 年龄组筛选
   /// [difficulty] 难度筛选
   /// [type] 课程类型筛选
-  Future<List<LessonEntity>> getLessons({
+  Future<Either<Failure, List<LessonEntity>>> getLessons({
     AgeGroup? ageGroup,
     DifficultyLevel? difficulty,
     LessonType? type,
@@ -21,13 +23,13 @@ abstract class LearningRepository {
   /// 根据ID获取课程详情
   /// 
   /// [lessonId] 课程ID
-  Future<LessonEntity?> getLessonById(String lessonId);
+  Future<Either<Failure, LessonEntity>> getLessonById(String lessonId);
   
   /// 获取推荐课程列表
   /// 
   /// [userId] 用户ID
   /// [limit] 返回数量限制
-  Future<List<LessonEntity>> getRecommendedLessons(
+  Future<Either<Failure, List<LessonEntity>>> getRecommendedLessons(
     String userId, {
     int limit = 5,
   });
@@ -36,7 +38,7 @@ abstract class LearningRepository {
   /// 
   /// [userId] 用户ID
   /// [limit] 返回数量限制
-  Future<List<LessonEntity>> getRecentLessons(
+  Future<Either<Failure, List<LessonEntity>>> getRecentLessons(
     String userId, {
     int limit = 3,
   });
@@ -45,7 +47,7 @@ abstract class LearningRepository {
   /// 
   /// [query] 搜索关键词
   /// [filters] 筛选条件
-  Future<List<LessonEntity>> searchLessons(
+  Future<Either<Failure, List<LessonEntity>>> searchLessons(
     String query, {
     Map<String, dynamic>? filters,
   });
@@ -57,7 +59,7 @@ abstract class LearningRepository {
   /// [progress] 进度值（0.0 - 1.0）
   /// [status] 课程状态
   /// [score] 得分（可选）
-  Future<void> updateLessonProgress(
+  Future<Either<Failure, Unit>> updateLessonProgress(
     String userId,
     String lessonId,
     double progress,
@@ -71,7 +73,7 @@ abstract class LearningRepository {
   /// [lessonId] 课程ID
   /// [score] 完成得分
   /// [studyTime] 学习时长（分钟）
-  Future<void> completeLession(
+  Future<Either<Failure, Unit>> completeLession(
     String userId,
     String lessonId,
     int score,
@@ -83,19 +85,19 @@ abstract class LearningRepository {
   /// 获取用户学习进度
   /// 
   /// [userId] 用户ID
-  Future<LearningProgressEntity?> getLearningProgress(String userId);
+  Future<Either<Failure, LearningProgressEntity>> getLearningProgress(String userId);
   
   /// 更新学习进度
   /// 
   /// [progress] 学习进度实体
-  Future<void> updateLearningProgress(LearningProgressEntity progress);
+  Future<Either<Failure, Unit>> updateLearningProgress(LearningProgressEntity progress);
   
   /// 添加学习时长
   /// 
   /// [userId] 用户ID
   /// [studyTime] 学习时长（分钟）
   /// [lessonType] 课程类型
-  Future<void> addStudyTime(
+  Future<Either<Failure, Unit>> addStudyTime(
     String userId,
     int studyTime,
     LessonType lessonType,
@@ -105,7 +107,7 @@ abstract class LearningRepository {
   /// 
   /// [userId] 用户ID
   /// [dailyGoal] 每日目标（分钟）
-  Future<void> updateDailyGoal(String userId, int dailyGoal);
+  Future<Either<Failure, Unit>> updateDailyGoal(String userId, int dailyGoal);
   
   /// 获取每日学习统计
   /// 

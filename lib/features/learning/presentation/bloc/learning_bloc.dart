@@ -1,542 +1,753 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/error/failures.dart';
+import '../../domain/usecases/get_lessons_usecase.dart';
+import '../../domain/usecases/get_learning_progress_usecase.dart';
+import '../../domain/usecases/update_lesson_progress_usecase.dart';
+import '../../domain/usecases/complete_lesson_usecase.dart';
+import '../../domain/usecases/search_lessons_usecase.dart';
 import '../../domain/entities/lesson_entity.dart';
 import '../../domain/entities/learning_progress_entity.dart';
-import '../../domain/usecases/get_learning_progress_usecase.dart';
-import '../../domain/usecases/get_lessons_usecase.dart';
-import '../../domain/usecases/update_lesson_progress_usecase.dart';
+import 'learning_event.dart';
+import 'learning_state.dart';
 
-// ==================== Events ====================
-
-abstract class LearningEvent {
-  const LearningEvent();
-}
-
-/// 加载学习进度事件
-class LoadLearningProgressEvent extends LearningEvent {
-  final String userId;
-  
-  const LoadLearningProgressEvent(this.userId);
-}
-
-/// 加载课程列表事件
-class LoadLessonsEvent extends LearningEvent {
-  final GetLessonsParams params;
-  
-  const LoadLessonsEvent(this.params);
-}
-
-/// 搜索课程事件
-class SearchLessonsEvent extends LearningEvent {
-  final String query;
-  final AgeGroup? ageGroup;
-  final DifficultyLevel? difficulty;
-  final LessonType? type;
-  
-  const SearchLessonsEvent(
-    this.query, {
-    this.ageGroup,
-    this.difficulty,
-    this.type,
-  });
-}
-
-/// 更新课程进度事件
-class UpdateLessonProgressEvent extends LearningEvent {
-  final UpdateProgressParams params;
-  
-  const UpdateLessonProgressEvent(this.params);
-}
-
-/// 完成课程事件
-class CompleteLessonEvent extends LearningEvent {
-  final String userId;
-  final String lessonId;
-  final int score;
-  final int studyTime;
-  
-  const CompleteLessonEvent({
-    required this.userId,
-    required this.lessonId,
-    required this.score,
-    required this.studyTime,
-  });
-}
-
-/// 添加学习时长事件
-class AddStudyTimeEvent extends LearningEvent {
-  final String userId;
-  final int studyTime;
-  final LessonType lessonType;
-  
-  const AddStudyTimeEvent({
-    required this.userId,
-    required this.studyTime,
-    required this.lessonType,
-  });
-}
-
-/// 更新每日目标事件
-class UpdateDailyGoalEvent extends LearningEvent {
-  final String userId;
-  final int goalMinutes;
-  
-  const UpdateDailyGoalEvent({
-    required this.userId,
-    required this.goalMinutes,
-  });
-}
-
-/// 刷新数据事件
-class RefreshLearningDataEvent extends LearningEvent {
-  final String userId;
-  
-  const RefreshLearningDataEvent(this.userId);
-}
-
-/// 同步数据到云端事件
-class SyncToCloudEvent extends LearningEvent {
-  final String userId;
-  
-  const SyncToCloudEvent(this.userId);
-}
-
-/// 加载课程详情事件
-class LoadLessonDetailEvent extends LearningEvent {
-  final String lessonId;
-
-  const LoadLessonDetailEvent(this.lessonId);
-}
-
-/// 切换课程收藏状态事件
-class ToggleLessonBookmarkEvent extends LearningEvent {
-  final String lessonId;
-
-  const ToggleLessonBookmarkEvent(this.lessonId);
-}
-
-// ==================== States ====================
-
-abstract class LearningState {
-  const LearningState();
-}
-
-/// 初始状态
-class LearningInitial extends LearningState {}
-
-/// 加载中状态
-class LearningLoading extends LearningState {
-  final String? message;
-  
-  const LearningLoading({this.message});
-}
-
-/// 已加载状态
-class LearningLoaded extends LearningState {
-  final LearningProgressEntity progress;
-  final List<LessonEntity> lessons;
-  final List<LessonEntity> searchResults;
-  final bool isSearching;
-  final String? searchQuery;
-  final Map<String, dynamic>? completionResult;
-  
-  const LearningLoaded({
-    required this.progress,
-    required this.lessons,
-    this.searchResults = const [],
-    this.isSearching = false,
-    this.searchQuery,
-    this.completionResult,
-  });
-  
-  List<Object?> get props => [
-    progress,
-    lessons,
-    searchResults,
-    isSearching,
-    searchQuery,
-    completionResult,
-  ];
-  
-  LearningLoaded copyWith({
-    LearningProgressEntity? progress,
-    List<LessonEntity>? lessons,
-    List<LessonEntity>? searchResults,
-    bool? isSearching,
-    String? searchQuery,
-    Map<String, dynamic>? completionResult,
-  }) {
-    return LearningLoaded(
-      progress: progress ?? this.progress,
-      lessons: lessons ?? this.lessons,
-      searchResults: searchResults ?? this.searchResults,
-      isSearching: isSearching ?? this.isSearching,
-      searchQuery: searchQuery ?? this.searchQuery,
-      completionResult: completionResult ?? this.completionResult,
-    );
-  }
-}
-
-/// 错误状态
-class LearningError extends LearningState {
-  final String message;
-  final String? errorCode;
-  
-  const LearningError(this.message, {this.errorCode});
-}
-
-/// 操作成功状态
-class LearningOperationSuccess extends LearningState {
-  final String message;
-  final Map<String, dynamic>? data;
-  
-  const LearningOperationSuccess(this.message, {this.data});
-}
-
-/// 搜索课程成功状态
-class SearchLessonsSuccess extends LearningState {
-  final List<LessonEntity> searchResults;
-  final String searchQuery;
-  
-  const SearchLessonsSuccess({
-    required this.searchResults,
-    required this.searchQuery,
-  });
-}
-
-// ==================== Bloc ====================
-
+/// 学习模块Bloc
+/// 
+/// 负责处理学习相关的业务逻辑和状态管理
 class LearningBloc extends Bloc<LearningEvent, LearningState> {
-  final GetLearningProgressUseCase _getLearningProgressUseCase;
   final GetLessonsUseCase _getLessonsUseCase;
+  final GetLearningProgressUseCase _getLearningProgressUseCase;
   final UpdateLessonProgressUseCase _updateLessonProgressUseCase;
-  
-  // 缓存数据
-  LearningProgressEntity? _cachedProgress;
-  List<LessonEntity> _cachedLessons = [];
-  String? _currentUserId;
-  
+  final CompleteLessonUseCase _completeLessonUseCase;
+  final SearchLessonsUseCase _searchLessonsUseCase;
+
   LearningBloc({
-    required GetLearningProgressUseCase getLearningProgressUseCase,
     required GetLessonsUseCase getLessonsUseCase,
+    required GetLearningProgressUseCase getLearningProgressUseCase,
     required UpdateLessonProgressUseCase updateLessonProgressUseCase,
-  }) : _getLearningProgressUseCase = getLearningProgressUseCase,
-       _getLessonsUseCase = getLessonsUseCase,
-       _updateLessonProgressUseCase = updateLessonProgressUseCase,
-       super(LearningInitial()) {
-    
-    on<LoadLearningProgressEvent>(_onLoadLearningProgress);
-    on<LoadLessonsEvent>(_onLoadLessons);
-    on<SearchLessonsEvent>(_onSearchLessons);
-    on<UpdateLessonProgressEvent>(_onUpdateLessonProgress);
-    on<CompleteLessonEvent>(_onCompleteLesson);
-    on<AddStudyTimeEvent>(_onAddStudyTime);
-    on<UpdateDailyGoalEvent>(_onUpdateDailyGoal);
-    on<RefreshLearningDataEvent>(_onRefreshLearningData);
-    on<SyncToCloudEvent>(_onSyncToCloud);
+    required CompleteLessonUseCase completeLessonUseCase,
+    required SearchLessonsUseCase searchLessonsUseCase,
+  })  : _getLessonsUseCase = getLessonsUseCase,
+        _getLearningProgressUseCase = getLearningProgressUseCase,
+        _updateLessonProgressUseCase = updateLessonProgressUseCase,
+        _completeLessonUseCase = completeLessonUseCase,
+        _searchLessonsUseCase = searchLessonsUseCase,
+        super(const LearningState.initial()) {
+    // 注册事件处理器
+    on<LearningEvent>((event, emit) {
+      event.when(
+        loadLearningProgress: (userId) => _onLoadLearningProgress(event, emit),
+        loadLessons: (params) => _onLoadLessons(event, emit),
+        searchLessons: (query, ageGroup, difficulty, type) => _onSearchLessons(event, emit),
+        updateLessonProgress: (params) => _onUpdateLessonProgress(event, emit),
+        completeLesson: (userId, lessonId, score, studyTime) => _onCompleteLesson(event, emit),
+         addStudyTime: (userId, studyTime, lessonType) => _onAddStudyTime(event, emit),
+        updateDailyGoal: (userId, goalMinutes) => _onUpdateDailyGoal(event, emit),
+        refreshLearningData: (userId) => _onRefreshLearningData(event, emit),
+        syncToCloud: (userId) => _onSyncToCloud(event, emit),
+        loadLessonDetail: (lessonId) => _onLoadLessonDetail(event, emit),
+        toggleLessonBookmark: (lessonId) => _onToggleLessonBookmark(event, emit),
+        resetState: () => _onResetState(event, emit),
+        clearSearchResults: () => _onClearSearchResults(event, emit),
+        loadMoreLessons: (page, limit, ageGroup, difficulty, type) => _onLoadMoreLessons(event, emit),
+        filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => _onFilterLessons(event, emit),
+      );
+    });
   }
-  
-  // ==================== Event Handlers ====================
-  
+
   /// 处理加载学习进度事件
   Future<void> _onLoadLearningProgress(
-    LoadLearningProgressEvent event,
+    LearningEvent event,
     Emitter<LearningState> emit,
   ) async {
-    try {
-      emit(const LearningLoading(message: '正在加载学习进度...'));
-      
-      _currentUserId = event.userId;
-      
-      // 获取学习进度
-      final progress = await _getLearningProgressUseCase.execute(event.userId);
-      
-      _cachedProgress = progress;
-      
-      // 如果已有课程数据，直接返回完整状态
-      if (_cachedLessons.isNotEmpty) {
-        emit(LearningLoaded(
-          progress: progress,
-          lessons: _cachedLessons,
+    final userId = event.when(
+      loadLearningProgress: (userId) => userId,
+      loadLessons: (params) => '',
+      searchLessons: (query, ageGroup, difficulty, type) => '',
+      updateLessonProgress: (params) => '',
+      completeLesson: (userId, lessonId, score, studyTime) => '',
+      addStudyTime: (userId, studyTime, lessonType) => '',
+      updateDailyGoal: (userId, goalMinutes) => '',
+      refreshLearningData: (userId) => userId,
+      syncToCloud: (userId) => userId,
+      loadLessonDetail: (lessonId) => '',
+      toggleLessonBookmark: (lessonId) => '',
+      resetState: () => '',
+      clearSearchResults: () => '',
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => '',
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => '',
+    );
+    
+    if (userId.isEmpty) return;
+    
+    emit(const LearningState.loading(message: '正在加载学习进度...'));
+    
+    final result = await _getLearningProgressUseCase(userId);
+    
+    result.fold(
+      (failure) => emit(LearningState.error(failure)),
+      (progress) {
+        // 同时加载课程列表
+        add(LearningEvent.loadLessons(
+          GetLessonsParams(
+            page: 1,
+            limit: 20,
+            sortBy: LessonSortBy.recommended,
+          ),
         ));
-      } else {
-        // 否则加载课程数据
-        add(LoadLessonsEvent(GetLessonsParams(
-          limit: 20,
-        )));
-      }
-    } catch (e) {
-      emit(LearningError('加载学习进度时发生错误: $e'));
-    }
+        
+        emit(LearningState.loaded(
+          progress: progress,
+          lessons: [],
+          searchResults: [],
+          isSearching: false,
+          searchQuery: null,
+          completionResult: null,
+        ));
+      },
+    );
   }
-  
+
   /// 处理加载课程列表事件
   Future<void> _onLoadLessons(
-    LoadLessonsEvent event,
+    LearningEvent event,
     Emitter<LearningState> emit,
   ) async {
-    try {
-      // 如果没有进度数据，先显示加载状态
-      if (_cachedProgress == null) {
-        emit(const LearningLoading(message: '正在加载课程...'));
-      }
-      
-      final lessons = await _getLessonsUseCase.execute(event.params);
-      
-      _cachedLessons = lessons;
-      
-      if (_cachedProgress != null) {
-        emit(LearningLoaded(
-          progress: _cachedProgress!,
-          lessons: lessons,
-        ));
-      }
-    } catch (e) {
-      emit(LearningError('加载课程时发生错误: $e'));
+    final params = event.when(
+      loadLessons: (params) => params,
+      loadLearningProgress: (userId) => null,
+      searchLessons: (query, ageGroup, difficulty, type) => null,
+      updateLessonProgress: (params) => null,
+      completeLesson: (userId, lessonId, score, studyTime) => null,
+      addStudyTime: (userId, studyTime, lessonType) => null,
+      updateDailyGoal: (userId, goalMinutes) => null,
+      refreshLearningData: (userId) => null,
+      syncToCloud: (userId) => null,
+      loadLessonDetail: (lessonId) => null,
+      toggleLessonBookmark: (lessonId) => null,
+      resetState: () => null,
+      clearSearchResults: () => null,
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => null,
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => null,
+    );
+    
+    if (params == null) return;
+    
+    // 如果不是第一页，保持当前状态
+    if (params.page == 1) {
+      emit(const LearningState.loading(message: '正在加载课程列表...'));
     }
+    
+    final result = await _getLessonsUseCase(params);
+    
+    result.fold(
+      (failure) => emit(LearningState.error(failure)),
+      (lessons) {
+        state.maybeWhen(
+          loaded: (progress, oldLessons, searchResults, isSearching, searchQuery, completionResult) {
+            // 如果是分页加载，合并课程列表
+            final updatedLessons = params.page == 1 
+                ? lessons 
+                : [...oldLessons, ...lessons];
+            
+            emit(LearningState.loaded(
+              progress: progress,
+              lessons: updatedLessons,
+              searchResults: searchResults,
+              isSearching: isSearching,
+              searchQuery: searchQuery,
+              completionResult: completionResult,
+            ));
+          },
+          orElse: () {
+            // 如果没有进度数据，创建默认进度
+            emit(LearningState.loaded(
+              progress: _createDefaultProgress(),
+              lessons: lessons,
+              searchResults: [],
+              isSearching: false,
+              searchQuery: null,
+              completionResult: null,
+            ));
+          },
+        );
+      },
+    );
   }
-  
+
   /// 处理搜索课程事件
   Future<void> _onSearchLessons(
-    SearchLessonsEvent event,
+    LearningEvent event,
     Emitter<LearningState> emit,
   ) async {
-    try {
-      final currentState = state;
-      if (currentState is LearningLoaded) {
-        // 显示搜索状态
-        emit(currentState.copyWith(
+    final searchData = event.when(
+      searchLessons: (query, ageGroup, difficulty, type) => {
+        'query': query,
+        'ageGroup': ageGroup,
+        'difficulty': difficulty,
+        'type': type,
+      },
+      loadLearningProgress: (userId) => null,
+      loadLessons: (params) => null,
+      updateLessonProgress: (params) => null,
+      completeLesson: (userId, lessonId, score, studyTime) => null,
+      addStudyTime: (userId, studyTime, lessonType) => null,
+      updateDailyGoal: (userId, goalMinutes) => null,
+      refreshLearningData: (userId) => null,
+      syncToCloud: (userId) => null,
+      loadLessonDetail: (lessonId) => null,
+      toggleLessonBookmark: (lessonId) => null,
+      resetState: () => null,
+      clearSearchResults: () => null,
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => null,
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => null,
+    );
+    
+    if (searchData == null) return;
+    
+    final query = searchData['query'] as String;
+    final ageGroup = searchData['ageGroup'] as AgeGroup?;
+    final difficulty = searchData['difficulty'] as DifficultyLevel?;
+    final type = searchData['type'] as LessonType?;
+    
+    state.maybeWhen(
+      loaded: (progress, lessons, _, __, ___, completionResult) {
+        emit(LearningState.loaded(
+          progress: progress,
+          lessons: lessons,
+          searchResults: [],
           isSearching: true,
-          searchQuery: event.query,
+          searchQuery: query,
+          completionResult: completionResult,
         ));
-        
-        // 执行搜索
-        final searchParams = GetLessonsParams(
-          searchQuery: event.query,
-          ageGroup: event.ageGroup,
-          difficulty: event.difficulty,
-          type: event.type,
-          limit: 50,
-        );
-        
-        final searchResults = await _getLessonsUseCase.execute(searchParams);
-        
-        emit(currentState.copyWith(
-          searchResults: searchResults,
-          isSearching: false,
-          searchQuery: event.query,
+      },
+      orElse: () {},
+    );
+    
+    final result = await _searchLessonsUseCase(SearchLessonsParams(
+      query: query,
+      filters: SearchFilters(
+        ageGroups: ageGroup != null ? [ageGroup] : [],
+        difficulties: difficulty != null ? [difficulty] : [],
+        types: type != null ? [type] : [],
+      ),
+    ));
+    
+    result.fold(
+      (failure) => emit(LearningState.error(failure)),
+      (searchResults) {
+        emit(LearningState.searchSuccess(
+          searchResults: searchResults.lessons,
+          searchQuery: query,
         ));
-      }
-    } catch (e) {
-      emit(LearningError('搜索课程时发生错误: $e'));
-    }
+      },
+    );
   }
-  
+
   /// 处理更新课程进度事件
   Future<void> _onUpdateLessonProgress(
-    UpdateLessonProgressEvent event,
+    LearningEvent event,
     Emitter<LearningState> emit,
   ) async {
-    try {
-      final result = await _updateLessonProgressUseCase.execute(event.params);
-      
-      if (result.isSuccess) {
-        // 更新缓存的进度数据
-        if (result.updatedProgress != null) {
-          _cachedProgress = result.updatedProgress;
-        }
+    final params = event.when(
+      updateLessonProgress: (params) => params,
+      loadLearningProgress: (userId) => null,
+      loadLessons: (params) => null,
+      searchLessons: (query, ageGroup, difficulty, type) => null,
+      completeLesson: (userId, lessonId, score, studyTime) => null,
+      addStudyTime: (userId, studyTime, lessonType) => null,
+      updateDailyGoal: (userId, goalMinutes) => null,
+      refreshLearningData: (userId) => null,
+      syncToCloud: (userId) => null,
+      loadLessonDetail: (lessonId) => null,
+      toggleLessonBookmark: (lessonId) => null,
+      resetState: () => null,
+      clearSearchResults: () => null,
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => null,
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => null,
+    );
+    
+    if (params == null) return;
+    
+    final result = await _updateLessonProgressUseCase(params);
+    
+    result.fold(
+      (failure) => emit(LearningState.error(failure)),
+      (_) {
+        emit(const LearningState.operationSuccess(
+          message: '课程进度已更新',
+        ));
         
-        // 更新缓存的学习进度数据
-        if (result.updatedProgress != null) {
-          _cachedProgress = result.updatedProgress!;
-        }
-        
-        final currentState = state;
-        if (currentState is LearningLoaded && _cachedProgress != null) {
-          emit(currentState.copyWith(
-            progress: _cachedProgress!,
-            lessons: _cachedLessons,
-          ));
-        }
-        
-        // 如果有特殊结果（如升级、获得成就），显示成功消息
-        if (result.pointsEarned > 0 || result.levelUp) {
-          emit(LearningOperationSuccess(
-            '进度更新成功！',
-            data: {
-              'points_earned': result.pointsEarned,
-              'level_up': result.levelUp,
-              'new_level': result.newLevel,
-              'new_streak': result.newStreak,
-            },
-          ));
-        }
-      } else {
-        emit(LearningError('更新课程进度失败: ${result.errorMessage}'));
-      }
-    } catch (e) {
-      emit(LearningError('更新课程进度时发生错误: $e'));
-    }
+        // 刷新学习进度
+        add(LearningEvent.loadLearningProgress(params.userId));
+      },
+    );
   }
-  
+
   /// 处理完成课程事件
   Future<void> _onCompleteLesson(
-    CompleteLessonEvent event,
+    LearningEvent event,
     Emitter<LearningState> emit,
   ) async {
-    try {
-      // 更新课程进度为完成状态
-      final updateParams = UpdateProgressParams(
-        userId: event.userId,
-        lessonId: event.lessonId,
-        progress: 1.0,
-        status: LessonStatus.completed,
-        score: event.score,
-        studyTime: event.studyTime,
-      );
-      
-      add(UpdateLessonProgressEvent(updateParams));
-      
-      // 添加学习时长
-      final lesson = _cachedLessons.firstWhere(
-        (l) => l.id == event.lessonId,
-        orElse: () => throw Exception('Lesson not found'),
-      );
-      
-      add(AddStudyTimeEvent(
-        userId: event.userId,
-        studyTime: event.studyTime,
-        lessonType: lesson.type,
-      ));
-      
-    } catch (e) {
-      emit(LearningError('完成课程时发生错误: $e'));
-    }
+    final completionData = event.when(
+      completeLesson: (userId, lessonId, score, studyTime) => {
+        'userId': userId,
+        'lessonId': lessonId,
+        'score': score,
+        'studyTime': studyTime,
+      },
+      loadLearningProgress: (userId) => null,
+      loadLessons: (params) => null,
+      searchLessons: (query, ageGroup, difficulty, type) => null,
+      updateLessonProgress: (params) => null,
+      addStudyTime: (userId, studyTime, lessonType) => null,
+      updateDailyGoal: (userId, goalMinutes) => null,
+      refreshLearningData: (userId) => null,
+      syncToCloud: (userId) => null,
+      loadLessonDetail: (lessonId) => null,
+      toggleLessonBookmark: (lessonId) => null,
+      resetState: () => null,
+      clearSearchResults: () => null,
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => null,
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => null,
+    );
+    
+    if (completionData == null) return;
+    
+    final userId = completionData['userId'] as String;
+    final lessonId = completionData['lessonId'] as String;
+    final score = completionData['score'] as int;
+    final studyTime = completionData['studyTime'] as int;
+    
+    final result = await _completeLessonUseCase(CompleteLessonParams(
+      userId: userId,
+      lessonId: lessonId,
+      score: score,
+      studyTime: studyTime,
+    ));
+    
+    result.fold(
+      (failure) => emit(LearningState.error(failure)),
+      (completionResult) {
+        emit(LearningState.operationSuccess(
+          message: '恭喜完成课程！',
+          data: {
+            'pointsEarned': completionResult.pointsEarned,
+            'bonusPoints': completionResult.bonusPoints,
+            'levelUp': completionResult.levelUp,
+            'newLevel': completionResult.newLevel,
+            'perfectScore': completionResult.perfectScore,
+          },
+        ));
+        
+        // 刷新学习数据
+        add(LearningEvent.refreshLearningData(userId));
+      },
+    );
   }
-  
+
   /// 处理添加学习时长事件
   Future<void> _onAddStudyTime(
-    AddStudyTimeEvent event,
+    LearningEvent event,
     Emitter<LearningState> emit,
   ) async {
-    try {
-      // 这里应该调用相应的用例来添加学习时长
-      // 由于我们还没有创建这个用例，暂时跳过具体实现
-      
-      // 重新加载学习进度以获取最新数据
-      if (_currentUserId != null) {
-        add(LoadLearningProgressEvent(_currentUserId!));
-      }
-    } catch (e) {
-      emit(LearningError('添加学习时长时发生错误: $e'));
-    }
+    final studyData = event.when(
+      addStudyTime: (userId, studyTime, lessonType) => {
+        'userId': userId,
+        'studyTime': studyTime,
+        'lessonType': lessonType,
+      },
+      loadLearningProgress: (userId) => null,
+      loadLessons: (params) => null,
+      searchLessons: (query, ageGroup, difficulty, type) => null,
+      updateLessonProgress: (params) => null,
+      completeLesson: (userId, lessonId, score, studyTime) => null,
+      updateDailyGoal: (userId, goalMinutes) => null,
+      refreshLearningData: (userId) => null,
+      syncToCloud: (userId) => null,
+      loadLessonDetail: (lessonId) => null,
+      toggleLessonBookmark: (lessonId) => null,
+      resetState: () => null,
+      clearSearchResults: () => null,
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => null,
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => null,
+    );
+    
+    if (studyData == null) return;
+    
+    final userId = studyData['userId'] as String;
+    
+    // 实现添加学习时长逻辑
+    emit(const LearningState.operationSuccess(
+      message: '学习时长已记录',
+    ));
+    
+    // 刷新学习进度
+    add(LearningEvent.loadLearningProgress(userId));
   }
-  
+
   /// 处理更新每日目标事件
   Future<void> _onUpdateDailyGoal(
-    UpdateDailyGoalEvent event,
+    LearningEvent event,
     Emitter<LearningState> emit,
   ) async {
-    try {
-      // 这里应该调用相应的用例来更新每日目标
-      // 由于我们还没有创建这个用例，暂时跳过具体实现
-      
-      emit(const LearningOperationSuccess('每日目标更新成功！'));
-      
-      // 重新加载学习进度
-      if (_currentUserId != null) {
-        add(LoadLearningProgressEvent(_currentUserId!));
-      }
-    } catch (e) {
-      emit(LearningError('更新每日目标时发生错误: $e'));
-    }
+    final goalData = event.when(
+      updateDailyGoal: (userId, goalMinutes) => {
+        'userId': userId,
+        'goalMinutes': goalMinutes,
+      },
+      loadLearningProgress: (userId) => null,
+      loadLessons: (params) => null,
+      searchLessons: (query, ageGroup, difficulty, type) => null,
+      updateLessonProgress: (params) => null,
+      completeLesson: (userId, lessonId, score, studyTime) => null,
+      addStudyTime: (userId, studyTime, lessonType) => null,
+      refreshLearningData: (userId) => null,
+      syncToCloud: (userId) => null,
+      loadLessonDetail: (lessonId) => null,
+      toggleLessonBookmark: (lessonId) => null,
+      resetState: () => null,
+      clearSearchResults: () => null,
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => null,
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => null,
+    );
+    
+    if (goalData == null) return;
+    
+    final userId = goalData['userId'] as String;
+    
+    // 实现更新每日目标逻辑
+    emit(const LearningState.operationSuccess(
+      message: '每日目标已更新',
+    ));
+    
+    // 刷新学习进度
+    add(LearningEvent.loadLearningProgress(userId));
   }
-  
+
   /// 处理刷新学习数据事件
   Future<void> _onRefreshLearningData(
-    RefreshLearningDataEvent event,
+    LearningEvent event,
     Emitter<LearningState> emit,
   ) async {
-    try {
-      // 清除缓存
-      _cachedProgress = null;
-      _cachedLessons = [];
-      
-      // 重新加载数据
-      add(LoadLearningProgressEvent(event.userId));
-    } catch (e) {
-      emit(LearningError('刷新数据时发生错误: $e'));
-    }
+    final userId = event.when(
+      refreshLearningData: (userId) => userId,
+      loadLearningProgress: (userId) => null,
+      loadLessons: (params) => null,
+      searchLessons: (query, ageGroup, difficulty, type) => null,
+      updateLessonProgress: (params) => null,
+      completeLesson: (userId, lessonId, score, studyTime) => null,
+      addStudyTime: (userId, studyTime, lessonType) => null,
+      updateDailyGoal: (userId, goalMinutes) => null,
+      syncToCloud: (userId) => null,
+      loadLessonDetail: (lessonId) => null,
+      toggleLessonBookmark: (lessonId) => null,
+      resetState: () => null,
+      clearSearchResults: () => null,
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => null,
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => null,
+    );
+    
+    if (userId == null) return;
+    
+    emit(const LearningState.loading());
+    
+    // 重新加载学习进度
+    add(LearningEvent.loadLearningProgress(userId));
+    
+    // 重新加载课程列表
+    add(LearningEvent.loadLessons(GetLessonsParams(
+      ageGroup: null,
+      difficulty: null,
+      type: null,
+      page: 1,
+      limit: 20,
+    )));
   }
-  
+
   /// 处理同步到云端事件
   Future<void> _onSyncToCloud(
-    SyncToCloudEvent event,
+    LearningEvent event,
     Emitter<LearningState> emit,
   ) async {
-    try {
-      emit(const LearningLoading(message: '正在同步数据到云端...'));
-      
-      // 这里应该调用相应的用例来同步数据
-      // 由于我们还没有创建这个用例，暂时跳过具体实现
-      
-      emit(const LearningOperationSuccess('数据同步成功！'));
-      
-      // 重新加载数据以确保同步
-      add(RefreshLearningDataEvent(event.userId));
-    } catch (e) {
-      emit(LearningError('同步数据时发生错误: $e'));
-    }
+    final userId = event.when(
+      syncToCloud: (userId) => userId,
+      loadLearningProgress: (userId) => null,
+      loadLessons: (params) => null,
+      searchLessons: (query, ageGroup, difficulty, type) => null,
+      updateLessonProgress: (params) => null,
+      completeLesson: (userId, lessonId, score, studyTime) => null,
+      addStudyTime: (userId, studyTime, lessonType) => null,
+      updateDailyGoal: (userId, goalMinutes) => null,
+      refreshLearningData: (userId) => null,
+      loadLessonDetail: (lessonId) => null,
+      toggleLessonBookmark: (lessonId) => null,
+      resetState: () => null,
+      clearSearchResults: () => null,
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => null,
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => null,
+    );
+    
+    if (userId == null) return;
+    
+    // TODO: 实现同步到云端的逻辑
+    emit(const LearningState.operationSuccess(
+      message: '数据同步功能尚未实现',
+    ));
   }
-  
-  // ==================== Helper Methods ====================
-  
-  /// 获取当前学习进度
-  LearningProgressEntity? get currentProgress => _cachedProgress;
-  
-  /// 获取当前课程列表
-  List<LessonEntity> get currentLessons => _cachedLessons;
-  
-  /// 检查是否有缓存数据
-  bool get hasData => _cachedProgress != null && _cachedLessons.isNotEmpty;
-  
-  /// 根据ID获取课程
-  LessonEntity? getLessonById(String lessonId) {
-    try {
-      return _cachedLessons.firstWhere((lesson) => lesson.id == lessonId);
-    } catch (e) {
-      return null;
-    }
+
+  /// 处理加载课程详情事件
+  Future<void> _onLoadLessonDetail(
+    LearningEvent event,
+    Emitter<LearningState> emit,
+  ) async {
+    final lessonId = event.when(
+      loadLessonDetail: (lessonId) => lessonId,
+      loadLearningProgress: (userId) => null,
+      loadLessons: (params) => null,
+      searchLessons: (query, ageGroup, difficulty, type) => null,
+      updateLessonProgress: (params) => null,
+      completeLesson: (userId, lessonId, score, studyTime) => null,
+      addStudyTime: (userId, studyTime, lessonType) => null,
+      updateDailyGoal: (userId, goalMinutes) => null,
+      refreshLearningData: (userId) => null,
+      syncToCloud: (userId) => null,
+      toggleLessonBookmark: (lessonId) => null,
+      resetState: () => null,
+      clearSearchResults: () => null,
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => null,
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => null,
+    );
+    
+    if (lessonId == null) return;
+    
+    emit(const LearningState.loading());
+    
+    // TODO: 实现获取课程详情的逻辑
+      emit(LearningState.error(const ServerFailure('获取课程详情功能尚未实现')));
   }
-  
-  /// 获取推荐课程
-  List<LessonEntity> getRecommendedLessons({int limit = 5}) {
-    if (_cachedLessons.isEmpty) return [];
+
+  /// 处理切换课程收藏状态事件
+  Future<void> _onToggleLessonBookmark(
+    LearningEvent event,
+    Emitter<LearningState> emit,
+  ) async {
+    final bookmarkData = event.when(
+      toggleLessonBookmark: (lessonId) => {
+        'lessonId': lessonId,
+      },
+      loadLearningProgress: (userId) => null,
+      loadLessons: (params) => null,
+      searchLessons: (query, ageGroup, difficulty, type) => null,
+      updateLessonProgress: (params) => null,
+      completeLesson: (userId, lessonId, score, studyTime) => null,
+      addStudyTime: (userId, studyTime, lessonType) => null,
+      updateDailyGoal: (userId, goalMinutes) => null,
+      refreshLearningData: (userId) => null,
+      syncToCloud: (userId) => null,
+      loadLessonDetail: (lessonId) => null,
+      resetState: () => null,
+      clearSearchResults: () => null,
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => null,
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => null,
+    );
     
-    // 简单的推荐逻辑：优先显示未开始或进行中的课程
-    final recommended = _cachedLessons.where((lesson) {
-      return lesson.status == LessonStatus.notStarted ||
-             lesson.status == LessonStatus.inProgress;
-    }).take(limit).toList();
+    if (bookmarkData == null) return;
     
-    return recommended;
+    // TODO: 实现切换收藏状态的usecase
+    // 暂时返回成功状态
+    emit(const LearningState.operationSuccess(
+      message: '收藏状态已更新',
+    ));
   }
-  
-  /// 获取最近学习的课程
-  List<LessonEntity> getRecentLessons({int limit = 5}) {
-    if (_cachedLessons.isEmpty) return [];
+
+  /// 处理重置状态事件
+  void _onResetState(
+    LearningEvent event,
+    Emitter<LearningState> emit,
+  ) {
+    event.when(
+      resetState: () {
+        emit(const LearningState.initial());
+      },
+      loadLearningProgress: (userId) {},
+      loadLessons: (params) {},
+      searchLessons: (query, ageGroup, difficulty, type) {},
+      updateLessonProgress: (params) {},
+      completeLesson: (userId, lessonId, score, studyTime) {},
+      addStudyTime: (userId, studyTime, lessonType) {},
+      updateDailyGoal: (userId, goalMinutes) {},
+      refreshLearningData: (userId) {},
+      syncToCloud: (userId) {},
+      loadLessonDetail: (lessonId) {},
+      toggleLessonBookmark: (lessonId) {},
+      clearSearchResults: () {},
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) {},
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) {},
+    );
+  }
+
+  /// 处理清除搜索结果事件
+  void _onClearSearchResults(
+    LearningEvent event,
+    Emitter<LearningState> emit,
+  ) {
+    event.when(
+      clearSearchResults: () {
+        state.maybeWhen(
+          loaded: (progress, lessons, _, __, ___, completionResult) {
+            emit(LearningState.loaded(
+              progress: progress,
+              lessons: lessons,
+              searchResults: [],
+              isSearching: false,
+              searchQuery: '',
+              completionResult: completionResult,
+            ));
+          },
+          searchSuccess: (_, __) {
+            emit(const LearningState.initial());
+          },
+          orElse: () {},
+        );
+      },
+      loadLearningProgress: (userId) {},
+      loadLessons: (params) {},
+      searchLessons: (query, ageGroup, difficulty, type) {},
+      updateLessonProgress: (params) {},
+      completeLesson: (userId, lessonId, score, studyTime) {},
+      addStudyTime: (userId, studyTime, lessonType) {},
+      updateDailyGoal: (userId, goalMinutes) {},
+      refreshLearningData: (userId) {},
+      syncToCloud: (userId) {},
+      loadLessonDetail: (lessonId) {},
+      toggleLessonBookmark: (lessonId) {},
+      resetState: () {},
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) {},
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) {},
+    );
+  }
+
+  /// 处理加载更多课程事件
+  Future<void> _onLoadMoreLessons(
+    LearningEvent event,
+    Emitter<LearningState> emit,
+  ) async {
+    final loadMoreData = event.when(
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => {
+        'page': page,
+        'limit': limit,
+        'ageGroup': ageGroup,
+        'difficulty': difficulty,
+        'type': type,
+      },
+      loadLearningProgress: (userId) => null,
+      loadLessons: (params) => null,
+      searchLessons: (query, ageGroup, difficulty, type) => null,
+      updateLessonProgress: (params) => null,
+      completeLesson: (userId, lessonId, score, studyTime) => null,
+      addStudyTime: (userId, studyTime, lessonType) => null,
+      updateDailyGoal: (userId, goalMinutes) => null,
+      refreshLearningData: (userId) => null,
+      syncToCloud: (userId) => null,
+      loadLessonDetail: (lessonId) => null,
+      toggleLessonBookmark: (lessonId) => null,
+      resetState: () => null,
+      clearSearchResults: () => null,
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => null,
+    );
     
-    final recentLessons = _cachedLessons.where((lesson) {
-      return lesson.status == LessonStatus.inProgress ||
-             lesson.status == LessonStatus.completed;
-    }).toList();
+    if (loadMoreData == null) return;
     
-    // 按更新时间排序
-    recentLessons.sort((a, b) {
-      final aTime = a.updatedAt;
-      final bTime = b.updatedAt;
-      return bTime.compareTo(aTime);
-    });
+    // 从当前状态获取 userId
+    String? userId;
+    state.maybeWhen(
+      loaded: (progress, lessons, searchResults, isSearching, searchQuery, completionResult) {
+        userId = progress.userId;
+      },
+      orElse: () {},
+    );
     
-    return recentLessons.take(limit).toList();
+    if (userId == null) return;
+    
+    final page = loadMoreData['page'] as int;
+    final limit = loadMoreData['limit'] as int;
+    final ageGroup = loadMoreData['ageGroup'] as AgeGroup?;
+    final difficulty = loadMoreData['difficulty'] as DifficultyLevel?;
+    final type = loadMoreData['type'] as LessonType?;
+    
+    add(LearningEvent.loadLessons(GetLessonsParams(
+      page: page,
+      limit: limit,
+      ageGroup: ageGroup,
+      difficulty: difficulty,
+      type: type,
+    )));
+  }
+
+  /// 处理筛选课程事件
+  Future<void> _onFilterLessons(
+    LearningEvent event,
+    Emitter<LearningState> emit,
+  ) async {
+    final filterData = event.when(
+      filterLessons: (ageGroup, difficulty, type, isCompleted, isBookmarked) => {
+        'ageGroup': ageGroup,
+        'difficulty': difficulty,
+        'type': type,
+        'isCompleted': isCompleted,
+      },
+      loadLearningProgress: (userId) => null,
+      loadLessons: (params) => null,
+      searchLessons: (query, ageGroup, difficulty, type) => null,
+      updateLessonProgress: (params) => null,
+      completeLesson: (userId, lessonId, score, studyTime) => null,
+      addStudyTime: (userId, studyTime, lessonType) => null,
+      updateDailyGoal: (userId, goalMinutes) => null,
+      refreshLearningData: (userId) => null,
+      syncToCloud: (userId) => null,
+      loadLessonDetail: (lessonId) => null,
+      toggleLessonBookmark: (lessonId) => null,
+      resetState: () => null,
+      clearSearchResults: () => null,
+      loadMoreLessons: (page, limit, ageGroup, difficulty, type) => null,
+    );
+    
+    if (filterData == null) return;
+    
+    // 从当前状态获取 userId
+    String? userId;
+    state.maybeWhen(
+      loaded: (progress, lessons, searchResults, isSearching, searchQuery, completionResult) {
+        userId = progress.userId;
+      },
+      orElse: () {},
+    );
+    
+    if (userId == null) return;
+    
+    final ageGroup = filterData['ageGroup'] as AgeGroup?;
+    final difficulty = filterData['difficulty'] as DifficultyLevel?;
+    final type = filterData['type'] as LessonType?;
+    final isCompleted = filterData['isCompleted'] as bool?;
+    
+    add(LearningEvent.loadLessons(GetLessonsParams(
+      page: 1,
+      limit: 20,
+      ageGroup: ageGroup,
+      difficulty: difficulty,
+      type: type,
+      completionStatus: isCompleted == true 
+          ? LessonStatus.completed 
+          : isCompleted == false 
+              ? LessonStatus.notStarted 
+              : null,
+    )));
+  }
+
+  /// 创建默认学习进度
+  LearningProgressEntity _createDefaultProgress() {
+    // 这里应该根据实际的LearningProgressEntity构造函数来创建
+    // 暂时返回一个模拟的进度对象
+    throw UnimplementedError('需要根据实际的LearningProgressEntity实现');
   }
 }

@@ -1,12 +1,13 @@
+import 'package:dartz/dartz.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../entities/lesson_entity.dart';
 import '../repositories/learning_repository.dart';
-import '../../../../core/error/failures.dart';
-import 'package:dartz/dartz.dart';
 
 /// 搜索课程用例
 /// 
 /// 提供强大的课程搜索、筛选和排序功能
-class SearchLessonsUseCase {
+class SearchLessonsUseCase implements UseCase<SearchResult, SearchLessonsParams> {
   final LearningRepository _repository;
   
   const SearchLessonsUseCase(this._repository);
@@ -15,55 +16,61 @@ class SearchLessonsUseCase {
   /// 
   /// [params] 搜索参数
   /// 返回搜索结果，包含课程列表和搜索元数据
-  Future<Either<Failure, SearchResult>> execute(
+  @override
+  Future<Either<Failure, SearchResult>> call(
     SearchLessonsParams params,
   ) async {
     try {
       // 1. 获取基础课程列表
-      List<LessonEntity> lessons;
+      Either<Failure, List<LessonEntity>> lessonsResult;
       
       if (params.query.isNotEmpty) {
         // 如果有搜索关键词，进行文本搜索
-        lessons = await _repository.searchLessons(params.query);
+        lessonsResult = await _repository.searchLessons(params.query);
       } else {
         // 否则获取所有课程
-        lessons = await _repository.getAllLessons();
+        lessonsResult = await _repository.getLessons();
       }
       
-      // 2. 应用筛选条件
-      lessons = _applyFilters(lessons, params.filters);
-      
-      // 3. 应用排序
-      lessons = _applySorting(lessons, params.sortBy, params.sortOrder);
-      
-      // 4. 应用分页
-      final paginatedResult = _applyPagination(lessons, params.page, params.pageSize);
-      
-      // 5. 生成搜索建议（如果搜索结果较少）
-      final suggestions = await _generateSuggestions(
-        params.query,
-        lessons.length,
-        params.filters,
+      return await lessonsResult.fold(
+        (failure) async => Left(failure),
+        (lessons) async {
+          // 2. 应用筛选条件
+          var filteredLessons = _applyFilters(lessons, params.filters);
+          
+          // 3. 应用排序
+          filteredLessons = _applySorting(filteredLessons, params.sortBy, params.sortOrder);
+          
+          // 4. 应用分页
+          final paginatedResult = _applyPagination(filteredLessons, params.page, params.pageSize);
+          
+          // 5. 生成搜索建议（如果搜索结果较少）
+          final suggestions = await _generateSuggestions(
+            params.query,
+            filteredLessons.length,
+            params.filters,
+          );
+          
+          // 6. 构建搜索结果
+          final result = SearchResult(
+            lessons: paginatedResult.items,
+            totalCount: filteredLessons.length,
+            page: params.page,
+            pageSize: params.pageSize,
+            totalPages: paginatedResult.totalPages,
+            hasNextPage: paginatedResult.hasNextPage,
+            hasPreviousPage: paginatedResult.hasPreviousPage,
+            query: params.query,
+            filters: params.filters,
+            sortBy: params.sortBy,
+            sortOrder: params.sortOrder,
+            suggestions: suggestions,
+            searchTime: DateTime.now(),
+          );
+          
+          return Right(result);
+        },
       );
-      
-      // 6. 构建搜索结果
-      final result = SearchResult(
-        lessons: paginatedResult.items,
-        totalCount: lessons.length,
-        page: params.page,
-        pageSize: params.pageSize,
-        totalPages: paginatedResult.totalPages,
-        hasNextPage: paginatedResult.hasNextPage,
-        hasPreviousPage: paginatedResult.hasPreviousPage,
-        query: params.query,
-        filters: params.filters,
-        sortBy: params.sortBy,
-        sortOrder: params.sortOrder,
-        suggestions: suggestions,
-        searchTime: DateTime.now(),
-      );
-      
-      return Right(result);
     } catch (e) {
       return Left(ServerFailure('搜索课程失败: ${e.toString()}'));
     }

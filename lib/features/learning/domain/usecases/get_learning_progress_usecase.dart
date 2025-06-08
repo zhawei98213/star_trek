@@ -1,11 +1,14 @@
 import '../entities/learning_progress_entity.dart';
+import 'package:dartz/dartz.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../entities/lesson_entity.dart';
 import '../repositories/learning_repository.dart';
 
 /// 获取学习进度用例
 /// 
 /// 负责获取和计算用户的学习进度信息
-class GetLearningProgressUseCase {
+class GetLearningProgressUseCase implements UseCase<LearningProgressEntity, String> {
   final LearningRepository _repository;
   
   const GetLearningProgressUseCase(this._repository);
@@ -14,21 +17,32 @@ class GetLearningProgressUseCase {
   /// 
   /// [userId] 用户ID
   /// 返回学习进度实体，如果用户没有学习记录则返回默认进度
-  Future<LearningProgressEntity> execute(String userId) async {
+  @override
+  Future<Either<Failure, LearningProgressEntity>> call(String userId) async {
     try {
       // 尝试从仓库获取学习进度
-      final progress = await _repository.getLearningProgress(userId);
+      final progressResult = await _repository.getLearningProgress(userId);
       
-      if (progress != null) {
-        // 如果存在进度记录，检查是否需要更新今日数据
-        return await _updateTodayProgress(progress);
-      } else {
-        // 如果不存在进度记录，创建默认进度
-        return await _createDefaultProgress(userId);
-      }
+      return progressResult.fold(
+        (failure) async {
+          // 如果获取失败，尝试创建默认进度
+          final defaultProgress = await _createDefaultProgress(userId);
+          return Right(defaultProgress);
+        },
+        (progress) async {
+          // 如果存在进度记录，检查是否需要更新今日数据
+          final updatedProgress = await _updateTodayProgress(progress);
+          return Right(updatedProgress);
+        },
+      );
     } catch (e) {
-      // 发生错误时返回默认进度
-      return await _createDefaultProgress(userId);
+      // 发生未预期错误时返回默认进度
+      try {
+        final defaultProgress = await _createDefaultProgress(userId);
+        return Right(defaultProgress);
+      } catch (createError) {
+        return Left(UnknownFailure('无法获取或创建学习进度: ${createError.toString()}'));
+      }
     }
   }
   
@@ -72,7 +86,11 @@ class GetLearningProgressUseCase {
     final now = DateTime.now();
     
     // 获取所有课程以计算总数
-    final allLessons = await _repository.getLessons();
+    final lessonsResult = await _repository.getLessons();
+    final allLessons = lessonsResult.fold(
+      (failure) => <LessonEntity>[], // 如果失败，返回空列表
+      (lessons) => lessons,
+    );
     
     // 创建各分类的默认进度
     final categoryProgress = <LessonType, CategoryProgress>{};

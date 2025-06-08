@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/learning_bloc.dart';
+import '../bloc/learning_event.dart';
+import '../bloc/learning_state.dart';
 import '../widgets/lesson_card.dart';
 import '../../domain/entities/lesson_entity.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -41,7 +43,7 @@ class _LessonSearchPageState extends State<LessonSearchPage> {
     
     // 初始加载所有课程
     context.read<LearningBloc>().add(
-      SearchLessonsEvent(''),
+      LearningEvent.searchLessons(query: ''),
     );
   }
   
@@ -415,24 +417,24 @@ class _LessonSearchPageState extends State<LessonSearchPage> {
   Widget _buildSearchResults(BuildContext context) {
     return BlocBuilder<LearningBloc, LearningState>(
       builder: (context, state) {
-        if (state is LearningLoading) {
-          return const LoadingWidget();
-        }
-        
-        if (state is LearningError) {
-          return CustomErrorWidget(
-            message: state.message,
+        return state.maybeWhen(
+          loading: (message) => const LoadingWidget(),
+          error: (failure) => CustomErrorWidget(
+            message: failure.message,
             onRetry: () {
               _performSearch();
             },
-          );
-        }
-        
-        if (state is SearchLessonsSuccess) {
-          return _buildSearchResultsList(context, state.searchResults);
-        }
-        
-        return const SizedBox.shrink();
+          ),
+          searchSuccess: (searchResults, searchQuery) => 
+            _buildSearchResultsList(context, searchResults),
+          loaded: (progress, lessons, searchResults, isSearching, searchQuery, completionResult) {
+            if (isSearching && searchResults.isNotEmpty) {
+              return _buildSearchResultsList(context, searchResults);
+            }
+            return _buildSearchResultsList(context, lessons);
+          },
+          orElse: () => const SizedBox.shrink(),
+        );
       },
     );
   }
@@ -628,8 +630,8 @@ class _LessonSearchPageState extends State<LessonSearchPage> {
   void _performSearch() {
     final filters = _buildCurrentFilters();
     context.read<LearningBloc>().add(
-      SearchLessonsEvent(
-        _searchQuery,
+      LearningEvent.searchLessons(
+        query: _searchQuery,
         ageGroup: _parseAgeGroup(filters['category']),
         difficulty: _parseDifficultyLevel(filters['difficulty']),
         type: _parseLessonType(filters['type']),

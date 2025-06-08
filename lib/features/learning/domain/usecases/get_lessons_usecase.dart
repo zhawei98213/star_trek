@@ -1,10 +1,13 @@
+import 'package:dartz/dartz.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../entities/lesson_entity.dart';
 import '../repositories/learning_repository.dart';
 
 /// 获取课程列表用例
 /// 
 /// 负责获取和筛选课程列表的业务逻辑
-class GetLessonsUseCase {
+class GetLessonsUseCase implements UseCase<List<LessonEntity>, GetLessonsParams> {
   final LearningRepository _repository;
   
   const GetLessonsUseCase(this._repository);
@@ -12,66 +15,71 @@ class GetLessonsUseCase {
   /// 执行获取课程列表
   /// 
   /// [params] 筛选参数
-  Future<List<LessonEntity>> execute(GetLessonsParams params) async {
+  @override
+  Future<Either<Failure, List<LessonEntity>>> call(GetLessonsParams params) async {
     try {
       // 从仓库获取课程列表
-      final lessons = await _repository.getLessons(
+      final lessonsResult = await _repository.getLessons(
         ageGroup: params.ageGroup,
         difficulty: params.difficulty,
         type: params.type,
       );
       
-      // 应用额外的筛选和排序逻辑
-      var filteredLessons = lessons;
-      
-      // 根据解锁状态筛选
-      if (params.onlyUnlocked) {
-        filteredLessons = filteredLessons
-            .where((lesson) => lesson.isUnlocked)
-            .toList();
-      }
-      
-      // 根据完成状态筛选
-      if (params.completionStatus != null) {
-        filteredLessons = filteredLessons
-            .where((lesson) => lesson.status == params.completionStatus)
-            .toList();
-      }
-      
-      // 根据搜索关键词筛选
-      if (params.searchQuery != null && params.searchQuery!.isNotEmpty) {
-        final query = params.searchQuery!.toLowerCase();
-        filteredLessons = filteredLessons
-            .where((lesson) =>
-                lesson.title.toLowerCase().contains(query) ||
-                lesson.description.toLowerCase().contains(query))
-            .toList();
-      }
-      
-      // 应用排序
-      _sortLessons(filteredLessons, params.sortBy);
-      
-      // 应用分页
-      if (params.limit != null) {
-        final startIndex = (params.page - 1) * params.limit!;
-        final endIndex = startIndex + params.limit!;
-        
-        if (startIndex < filteredLessons.length) {
-          filteredLessons = filteredLessons.sublist(
-            startIndex,
-            endIndex > filteredLessons.length
-                ? filteredLessons.length
-                : endIndex,
-          );
-        } else {
-          filteredLessons = [];
-        }
-      }
-      
-      return filteredLessons;
+      return lessonsResult.fold(
+        (failure) => Left(failure),
+        (lessons) {
+          // 应用额外的筛选和排序逻辑
+          var filteredLessons = lessons;
+          
+          // 根据解锁状态筛选
+          if (params.onlyUnlocked) {
+            filteredLessons = filteredLessons
+                .where((lesson) => lesson.isUnlocked)
+                .toList();
+          }
+          
+          // 根据完成状态筛选
+          if (params.completionStatus != null) {
+            filteredLessons = filteredLessons
+                .where((lesson) => lesson.status == params.completionStatus)
+                .toList();
+          }
+          
+          // 根据搜索关键词筛选
+          if (params.searchQuery != null && params.searchQuery!.isNotEmpty) {
+            final query = params.searchQuery!.toLowerCase();
+            filteredLessons = filteredLessons
+                .where((lesson) =>
+                    lesson.title.toLowerCase().contains(query) ||
+                    lesson.description.toLowerCase().contains(query))
+                .toList();
+          }
+          
+          // 应用排序
+          _sortLessons(filteredLessons, params.sortBy);
+          
+          // 应用分页
+          if (params.limit != null) {
+            final startIndex = (params.page - 1) * params.limit!;
+            final endIndex = startIndex + params.limit!;
+            
+            if (startIndex < filteredLessons.length) {
+              filteredLessons = filteredLessons.sublist(
+                startIndex,
+                endIndex > filteredLessons.length
+                    ? filteredLessons.length
+                    : endIndex,
+              );
+            } else {
+              filteredLessons = [];
+            }
+          }
+          
+          return Right(filteredLessons);
+        },
+      );
     } catch (e) {
-      // 发生错误时返回空列表
-      return [];
+      return Left(UnknownFailure('获取课程列表失败: ${e.toString()}'));
     }
   }
   

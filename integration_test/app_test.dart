@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:start_trek/main.dart' as app;
@@ -81,9 +82,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.pumpAndSettle(const Duration(seconds: 3));
       
-      // 检查语义标签
-      final semantics = tester.binding.pipelineOwner.semanticsOwner;
-      expect(semantics, isNotNull);
+      // 检查语义是否启用
+      final semanticsEnabled = SemanticsBinding.instance.semanticsEnabled;
+      expect(semanticsEnabled, isTrue);
       
       // 验证主要元素有适当的语义标签
       expect(find.bySemanticsLabel(RegExp(r'欢迎|首页|导航')), findsWidgets);

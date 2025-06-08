@@ -1,3 +1,5 @@
+import 'package:dartz/dartz.dart';
+import '../../../../core/error/failures.dart';
 import '../../domain/entities/lesson_entity.dart';
 import '../../domain/entities/learning_progress_entity.dart';
 import '../../domain/repositories/learning_repository.dart';
@@ -24,7 +26,7 @@ class LearningRepositoryImpl implements LearningRepository {
   // ==================== 课程相关方法实现 ====================
   
   @override
-  Future<List<LessonEntity>> getRecommendedLessons(
+  Future<Either<Failure, List<LessonEntity>>> getRecommendedLessons(
     String userId, {
     int limit = 5,
   }) async {
@@ -33,14 +35,14 @@ class LearningRepositoryImpl implements LearningRepository {
         userId,
         limit,
       );
-      return lessons.map((model) => model.toEntity()).toList();
+      return Right(lessons.map((model) => model.toEntity()).toList());
     } catch (e) {
-      throw Exception('Failed to get recommended lessons: $e');
+      return Left(ServerFailure('Failed to get recommended lessons: $e'));
     }
   }
   
   @override
-  Future<List<LessonEntity>> getRecentLessons(
+  Future<Either<Failure, List<LessonEntity>>> getRecentLessons(
     String userId, {
     int limit = 3,
   }) async {
@@ -49,9 +51,9 @@ class LearningRepositoryImpl implements LearningRepository {
         userId,
         limit: limit,
       );
-      return lessons.map((model) => model.toEntity()).toList();
+      return Right(lessons.map((model) => model.toEntity()).toList());
     } catch (e) {
-      throw Exception('Failed to get recent lessons: $e');
+      return Left(ServerFailure('Failed to get recent lessons: $e'));
     }
   }
   
@@ -104,7 +106,7 @@ class LearningRepositoryImpl implements LearningRepository {
   }
   
   @override
-  Future<List<LessonEntity>> getLessons({
+  Future<Either<Failure, List<LessonEntity>>> getLessons({
     AgeGroup? ageGroup,
     DifficultyLevel? difficulty,
     LessonType? type,
@@ -138,20 +140,20 @@ class LearningRepositoryImpl implements LearningRepository {
         return true;
       }).toList();
       
-      return filteredLessons.map((model) => model.toEntity()).toList();
+      return Right(filteredLessons.map((model) => model.toEntity()).toList());
     } catch (e) {
-      throw Exception('Failed to get lessons: $e');
+      return Left(ServerFailure('Failed to get lessons: $e'));
     }
   }
   
   @override
-  Future<LessonEntity?> getLessonById(String lessonId) async {
+  Future<Either<Failure, LessonEntity>> getLessonById(String lessonId) async {
     try {
       // 首先尝试从缓存获取
       final cachedLesson = await _localDataSource.getCachedLesson(lessonId);
       
       if (cachedLesson != null) {
-        return cachedLesson.toEntity();
+        return Right(cachedLesson.toEntity());
       }
       
       // 从远程获取
@@ -160,14 +162,14 @@ class LearningRepositoryImpl implements LearningRepository {
       // 缓存到本地
       await _localDataSource.cacheLesson(lesson);
       
-      return lesson.toEntity();
+      return Right(lesson.toEntity());
     } catch (e) {
-      throw Exception('Failed to get lesson by id: $e');
+      return Left(ServerFailure('Failed to get lesson by id: $e'));
     }
   }
   
   @override
-  Future<List<LessonEntity>> searchLessons(
+  Future<Either<Failure, List<LessonEntity>>> searchLessons(
     String query, {
     Map<String, dynamic>? filters,
   }) async {
@@ -189,23 +191,25 @@ class LearningRepositoryImpl implements LearningRepository {
         limit: limit,
       );
       
-      return lessons.map((model) => model.toEntity()).toList();
+      return Right(lessons.map((model) => model.toEntity()).toList());
     } catch (e) {
       // 如果远程搜索失败，尝试本地搜索
       final ageGroup = filters?['ageGroup'] as AgeGroup?;
       final difficulty = filters?['difficulty'] as DifficultyLevel?;
       final type = filters?['type'] as LessonType?;
       
-      return getLessons(
+      final lessonsResult = await getLessons(
         ageGroup: ageGroup,
         difficulty: difficulty,
         type: type,
       );
+      
+      return lessonsResult;
     }
   }
   
   @override
-  Future<void> updateLessonProgress(
+  Future<Either<Failure, Unit>> updateLessonProgress(
     String userId,
     String lessonId,
     double progress,
@@ -234,13 +238,15 @@ class LearningRepositoryImpl implements LearningRepository {
         // 远程同步失败，记录错误但不影响本地更新
         // Failed to sync lesson progress to remote: $e
       }
+      
+      return const Right(unit);
     } catch (e) {
-      throw Exception('Failed to update lesson progress: $e');
+      return Left(ServerFailure('Failed to update lesson progress: $e'));
     }
   }
   
   @override
-  Future<void> completeLession(
+  Future<Either<Failure, Unit>> completeLession(
     String userId,
     String lessonId,
     int score,
@@ -271,15 +277,17 @@ class LearningRepositoryImpl implements LearningRepository {
       if (currentProgress != null) {
         await checkAndUpdateLevel(userId, currentProgress.totalPoints + score);
       }
+      
+      return const Right(unit);
     } catch (e) {
-      throw Exception('Failed to complete lesson: $e');
+      return Left(ServerFailure('Failed to complete lesson: $e'));
     }
   }
   
   // ==================== 学习进度相关方法实现 ====================
   
   @override
-  Future<LearningProgressEntity> getLearningProgress(String userId) async {
+  Future<Either<Failure, LearningProgressEntity>> getLearningProgress(String userId) async {
     try {
       // 首先尝试从本地获取
       final localProgress = await _localDataSource.getLearningProgress(userId);
@@ -292,34 +300,34 @@ class LearningRepositoryImpl implements LearningRepository {
           // 比较时间戳，使用最新的数据
           if (remoteProgress.updatedAt.isAfter(localProgress.updatedAt)) {
             await _localDataSource.saveLearningProgress(remoteProgress);
-            return remoteProgress.toEntity();
+            return Right(remoteProgress.toEntity());
           }
         } catch (e) {
           // 远程获取失败，使用本地数据
           // Failed to sync progress from remote: $e
         }
         
-        return localProgress.toEntity();
+        return Right(localProgress.toEntity());
       }
       
       // 本地没有数据，尝试从远程获取
       try {
         final remoteProgress = await _remoteDataSource.getUserProgress(userId);
         await _localDataSource.saveLearningProgress(remoteProgress);
-        return remoteProgress.toEntity();
+        return Right(remoteProgress.toEntity());
       } catch (e) {
         // 远程也没有数据，创建默认进度
         final defaultProgress = _createDefaultProgress(userId);
         await _localDataSource.saveLearningProgress(defaultProgress);
-        return defaultProgress.toEntity();
+        return Right(defaultProgress.toEntity());
       }
     } catch (e) {
-      throw Exception('Failed to get learning progress: $e');
+      return Left(ServerFailure('Failed to get learning progress: $e'));
     }
   }
   
   @override
-  Future<void> updateLearningProgress(LearningProgressEntity progress) async {
+  Future<Either<Failure, Unit>> updateLearningProgress(LearningProgressEntity progress) async {
     try {
       final progressModel = LearningProgressModel.fromEntity(progress);
       
@@ -333,13 +341,15 @@ class LearningRepositoryImpl implements LearningRepository {
         // 远程同步失败，记录错误但不影响本地更新
         // Failed to sync progress to remote: $e
       }
+      
+      return const Right(unit);
     } catch (e) {
-      throw Exception('Failed to update learning progress: $e');
+      return Left(ServerFailure('Failed to update learning progress: $e'));
     }
   }
   
   @override
-  Future<void> addStudyTime(
+  Future<Either<Failure, Unit>> addStudyTime(
     String userId,
     int studyTime,
     LessonType lessonType,
@@ -360,16 +370,18 @@ class LearningRepositoryImpl implements LearningRepository {
         // 远程上传失败，记录错误但不影响本地更新
         // Failed to upload study time to remote: $e
       }
+      
+      return const Right(unit);
     } catch (e) {
-      throw Exception('Failed to add study time: $e');
+      return Left(ServerFailure('Failed to add study time: $e'));
     }
   }
   
   @override
-  Future<void> updateDailyGoal(String userId, int goalMinutes) async {
+  Future<Either<Failure, Unit>> updateDailyGoal(String userId, int goalMinutes) async {
     try {
       final progress = await _localDataSource.getLearningProgress(userId);
-      if (progress == null) return;
+      if (progress == null) return const Right(unit);
       
       final updatedProgress = progress.copyWith(
         dailyGoal: goalMinutes,
@@ -384,8 +396,10 @@ class LearningRepositoryImpl implements LearningRepository {
       } catch (e) {
         // Failed to sync daily goal to remote: $e
       }
+      
+      return const Right(unit);
     } catch (e) {
-      throw Exception('Failed to update daily goal: $e');
+      return Left(ServerFailure('Failed to update daily goal: $e'));
     }
   }
   

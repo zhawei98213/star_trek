@@ -1,14 +1,15 @@
 import '../entities/lesson_entity.dart';
+import 'package:dartz/dartz.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../entities/learning_progress_entity.dart';
 import '../repositories/learning_repository.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/error/failures.dart';
-import 'package:dartz/dartz.dart';
 
 /// 完成课程用例
 /// 
 /// 处理课程完成的完整业务逻辑，包括进度更新、积分奖励、等级提升等
-class CompleteLessonUseCase {
+class CompleteLessonUseCase implements UseCase<CompletionResult, CompleteLessonParams> {
   final LearningRepository _repository;
   
   const CompleteLessonUseCase(this._repository);
@@ -17,26 +18,27 @@ class CompleteLessonUseCase {
   /// 
   /// [params] 完成课程的参数
   /// 返回完成结果，包含奖励信息和更新后的进度
-  Future<Either<Failure, CompletionResult>> execute(
+  @override
+  Future<Either<Failure, CompletionResult>> call(
     CompleteLessonParams params,
   ) async {
     try {
       // 1. 验证课程存在性
-      final lesson = await _repository.getLessonById(params.lessonId);
-      if (lesson == null) {
-        return Left(NotFoundFailure('课程不存在'));
-      }
+      final lessonResult = await _repository.getLessonById(params.lessonId);
+      return lessonResult.fold(
+        (failure) => Left(failure),
+        (lesson) async {
       
       // 2. 验证课程是否已解锁
       if (!lesson.isUnlocked) {
         return Left(ValidationFailure('课程尚未解锁'));
       }
       
-      // 3. 获取当前学习进度
-      final currentProgress = await _repository.getLearningProgress(params.userId);
-      if (currentProgress == null) {
-        return Left(NotFoundFailure('用户学习进度不存在'));
-      }
+          // 3. 获取当前学习进度
+          final progressResult = await _repository.getLearningProgress(params.userId);
+          return progressResult.fold(
+            (failure) => Left(failure),
+            (currentProgress) async {
       
       // 4. 检查课程是否已完成（避免重复完成）
       if (lesson.status == LessonStatus.completed) {
@@ -100,26 +102,35 @@ class CompleteLessonUseCase {
         newLevel,
       );
       
-      // 13. 获取更新后的学习进度
-      final updatedProgress = await _repository.getLearningProgress(params.userId);
-      
-      // 14. 构建完成结果
-      final result = CompletionResult(
-        lesson: lesson,
-        pointsEarned: rewards.pointsEarned,
-        bonusPoints: rewards.bonusPoints,
-        levelUp: newLevel > currentProgress.currentLevel,
-        previousLevel: currentProgress.currentLevel,
-        newLevel: newLevel,
-        streakUpdated: newStreak > currentProgress.currentStreak,
-        newStreak: newStreak,
-        newAchievements: newAchievements,
-        updatedProgress: updatedProgress!,
-        perfectScore: params.score != null && params.score! >= 100,
-        fastCompletion: params.studyTime < lesson.estimatedDuration * 0.8,
+              // 13. 获取更新后的学习进度
+              final updatedProgressResult = await _repository.getLearningProgress(params.userId);
+              
+              return updatedProgressResult.fold(
+                (failure) => Left(failure),
+                (updatedProgress) {
+                  // 14. 构建完成结果
+                  final result = CompletionResult(
+                    lesson: lesson,
+                    pointsEarned: rewards.pointsEarned,
+                    bonusPoints: rewards.bonusPoints,
+                    levelUp: newLevel > currentProgress.currentLevel,
+                    previousLevel: currentProgress.currentLevel,
+                    newLevel: newLevel,
+                    streakUpdated: newStreak > currentProgress.currentStreak,
+                    newStreak: newStreak,
+                    newAchievements: newAchievements,
+                    updatedProgress: updatedProgress,
+                    perfectScore: params.score != null && params.score! >= 100,
+                    fastCompletion: params.studyTime < lesson.estimatedDuration * 0.8,
+                  );
+                  
+                  return Right(result);
+                },
+              );
+            },
+          );
+        },
       );
-      
-      return Right(result);
     } catch (e) {
       return Left(ServerFailure('完成课程失败: ${e.toString()}'));
     }

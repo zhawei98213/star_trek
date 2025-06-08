@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../bloc/learning_bloc.dart';
+import '../bloc/learning_event.dart';
+import '../bloc/learning_state.dart';
 import '../widgets/learning_header.dart';
 import '../widgets/progress_overview.dart';
 import '../widgets/recommended_lessons.dart';
 import '../widgets/quick_actions.dart';
 import '../widgets/learning_statistics.dart';
 import '../../domain/entities/lesson_entity.dart';
+import '../../domain/entities/learning_progress_entity.dart';
 import '../../../home/presentation/widgets/daily_challenge.dart';
-
-
 import '../../../../shared/widgets/loading_widget.dart';
 import '../../../../shared/widgets/error_widget.dart';
 
@@ -53,7 +54,7 @@ class _LearningPageState extends State<LearningPage>
   
   void _loadLearningData() {
     context.read<LearningBloc>().add(
-      LoadLearningProgressEvent(widget.userId),
+      LearningEvent.loadLearningProgress(widget.userId),
     );
   }
   
@@ -75,51 +76,50 @@ class _LearningPageState extends State<LearningPage>
   
   /// 处理状态变化
   void _handleStateChanges(BuildContext context, LearningState state) {
-    if (state is LearningError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(state.message),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          action: SnackBarAction(
-            label: '重试',
-            onPressed: _loadLearningData,
+    state.maybeWhen(
+      error: (failure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(failure.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            action: SnackBarAction(
+              label: '重试',
+              onPressed: _loadLearningData,
+            ),
           ),
-        ),
-      );
-    } else if (state is LearningOperationSuccess) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(state.message),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-        ),
-      );
-      
-      // 如果有特殊数据（如升级、成就），显示对话框
-      if (state.data != null) {
-        _showAchievementDialog(context, state.data!);
-      }
-    }
+        );
+      },
+      operationSuccess: (message, data) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+        
+        // 如果有特殊数据（如升级、成就），显示对话框
+        if (data != null) {
+          _showAchievementDialog(context, data);
+        }
+      },
+      orElse: () {},
+    );
   }
   
   /// 构建主体内容
   Widget _buildBody(BuildContext context, LearningState state) {
-    if (state is LearningInitial || state is LearningLoading) {
-      return _buildLoadingView(state);
-    } else if (state is LearningError) {
-      return _buildErrorView(state);
-    } else if (state is LearningLoaded) {
-      return _buildLoadedView(context, state);
-    }
-    
-    return const SizedBox.shrink();
+    return state.maybeWhen(
+      initial: () => _buildLoadingView('正在初始化...'),
+      loading: (message) => _buildLoadingView(message ?? '正在加载...'),
+      error: (failure) => _buildErrorView(failure.message),
+      loaded: (progress, lessons, searchResults, isSearching, searchQuery, completionResult) => 
+        _buildLoadedView(context, progress, lessons),
+      orElse: () => const SizedBox.shrink(),
+    );
   }
   
   /// 构建加载视图
-  Widget _buildLoadingView(LearningState state) {
-    String message = '正在加载...';
-    if (state is LearningLoading && state.message != null) {
-      message = state.message!;
-    }
+  Widget _buildLoadingView(String message) {
     
     return Center(
       child: Column(
@@ -137,17 +137,17 @@ class _LearningPageState extends State<LearningPage>
   }
   
   /// 构建错误视图
-  Widget _buildErrorView(LearningError state) {
+  Widget _buildErrorView(String message) {
     return Center(
       child: CustomErrorWidget(
-        message: state.message,
+        message: message,
         onRetry: _loadLearningData,
       ),
     );
   }
   
   /// 构建已加载视图
-  Widget _buildLoadedView(BuildContext context, LearningLoaded state) {
+  Widget _buildLoadedView(BuildContext context, LearningProgressEntity progress, List<LessonEntity> lessons) {
     return NestedScrollView(
       controller: _scrollController,
       headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -159,7 +159,7 @@ class _LearningPageState extends State<LearningPage>
             backgroundColor: Theme.of(context).colorScheme.primary,
             flexibleSpace: FlexibleSpaceBar(
               background: LearningHeader(
-                progress: state.progress,
+                progress: progress,
                 onProfileTap: () => _navigateToProfile(context),
                 onSettingsTap: () => _navigateToSettings(context),
               ),
@@ -181,16 +181,16 @@ class _LearningPageState extends State<LearningPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildLearningTab(context, state),
-          _buildProgressTab(context, state),
-          _buildChallengeTab(context, state),
+          _buildLearningTab(context, progress, lessons),
+          _buildProgressTab(context, progress, lessons),
+          _buildChallengeTab(context, progress, lessons),
         ],
       ),
     );
   }
   
   /// 构建学习标签页
-  Widget _buildLearningTab(BuildContext context, LearningLoaded state) {
+  Widget _buildLearningTab(BuildContext context, LearningProgressEntity progress, List<LessonEntity> lessons) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -198,7 +198,7 @@ class _LearningPageState extends State<LearningPage>
         children: [
           // 进度概览
           ProgressOverview(
-            progress: state.progress,
+            progress: progress,
             onGoalTap: () => _showDailyGoalDialog(context),
           ),
           
@@ -214,7 +214,7 @@ class _LearningPageState extends State<LearningPage>
           
           // 推荐课程
           RecommendedLessons(
-            lessons: _getRecommendedLessons(state.lessons),
+            lessons: _getRecommendedLessons(lessons),
             onLessonTap: (lesson) => _navigateToLesson(context, lesson),
             onSeeAllTap: () => _navigateToAllLessons(context),
           ),
@@ -228,15 +228,15 @@ class _LearningPageState extends State<LearningPage>
   }
   
   /// 构建进度标签页
-  Widget _buildProgressTab(BuildContext context, LearningLoaded state) {
+  Widget _buildProgressTab(BuildContext context, LearningProgressEntity progress, List<LessonEntity> lessons) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           LearningStatistics(
-            progress: state.progress,
-            weeklyRecords: state.progress.weeklyStats,
-            monthlyRecords: state.progress.weeklyStats,
+            progress: progress,
+            weeklyRecords: progress.weeklyStats,
+            monthlyRecords: progress.weeklyStats,
             onViewDetailsTap: () => _navigateToDetailedStats(context),
           ),
           const SizedBox(height: 100),
@@ -246,7 +246,7 @@ class _LearningPageState extends State<LearningPage>
   }
   
   /// 构建挑战标签页
-  Widget _buildChallengeTab(BuildContext context, LearningLoaded state) {
+  Widget _buildChallengeTab(BuildContext context, LearningProgressEntity progress, List<LessonEntity> lessons) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -275,7 +275,7 @@ class _LearningPageState extends State<LearningPage>
   /// 刷新数据
   Future<void> _onRefresh() async {
     context.read<LearningBloc>().add(
-      RefreshLearningDataEvent(widget.userId),
+      LearningEvent.loadLearningProgress(widget.userId),
     );
     
     // 等待一段时间以确保刷新完成
@@ -318,7 +318,14 @@ class _LearningPageState extends State<LearningPage>
   
   /// 显示每日目标对话框
   void _showDailyGoalDialog(BuildContext context) {
-    final currentGoal = context.read<LearningBloc>().currentProgress?.dailyGoal ?? 30;
+    final state = context.read<LearningBloc>().state;
+    int currentGoal = 30; // 默认值
+    state.maybeWhen(
+      loaded: (progress, lessons, searchResults, isSearching, searchQuery, completionResult) {
+        currentGoal = progress.dailyGoal;
+      },
+      orElse: () {},
+    );
     double newGoal = currentGoal.toDouble();
     
     showDialog(
@@ -359,7 +366,7 @@ class _LearningPageState extends State<LearningPage>
           TextButton(
             onPressed: () {
               context.read<LearningBloc>().add(
-                UpdateDailyGoalEvent(
+                LearningEvent.updateDailyGoal(
                   userId: widget.userId,
                   goalMinutes: newGoal.round(),
                 ),

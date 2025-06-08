@@ -1,4 +1,4 @@
-# 🛠 开发指南
+# 开发指南
 
 本文档提供了 Star Trek 项目的详细开发指南，帮助开发者快速上手并遵循项目规范。
 
@@ -7,10 +7,12 @@
 - [开发环境设置](#开发环境设置)
 - [项目架构](#项目架构)
 - [编码规范](#编码规范)
+- [代码质量](#代码质量)
 - [Git 工作流](#git-工作流)
 - [测试策略](#测试策略)
 - [性能优化](#性能优化)
 - [调试技巧](#调试技巧)
+- [最新修复记录](#最新修复记录)
 
 ## 🔧 开发环境设置
 
@@ -50,169 +52,214 @@
     "source.fixAll": true
   },
   "dart.lineLength": 80,
-  "dart.showTodos": true
+  "dart.insertArgumentPlaceholders": false
 }
 ```
 
-## 🏗 项目架构
+## 🏗️ 项目架构
 
 ### Clean Architecture 分层
 
 ```
 lib/
-├── core/                    # 核心层
-│   ├── constants/          # 应用常量
-│   ├── errors/            # 错误处理
-│   ├── network/           # 网络配置
-│   ├── router/            # 路由管理
-│   ├── theme/             # 主题配置
-│   └── utils/             # 工具类
-├── features/              # 功能层
-│   └── [feature_name]/    # 具体功能
-│       ├── data/          # 数据层
-│       │   ├── datasources/
-│       │   ├── models/
-│       │   └── repositories/
-│       ├── domain/        # 业务层
-│       │   ├── entities/
-│       │   ├── repositories/
-│       │   └── usecases/
-│       └── presentation/  # 表现层
-│           ├── pages/
-│           ├── widgets/
-│           └── providers/
-└── shared/               # 共享组件
-    ├── widgets/         # 通用组件
-    └── extensions/      # 扩展方法
+├── core/                          # 核心功能层
+│   ├── error/                     # 错误处理
+│   │   └── failures.dart          # 失败类型定义
+│   ├── usecases/                  # 基础用例
+│   │   └── usecase.dart           # UseCase抽象类
+│   ├── utils/                     # 工具函数
+│   └── widgets/                   # 通用组件
+├── features/                      # 功能模块
+│   └── [feature_name]/           # 具体功能
+│       ├── data/                 # 数据层
+│       │   ├── datasources/      # 数据源
+│       │   ├── models/           # 数据模型
+│       │   └── repositories/     # 仓储实现
+│       ├── domain/               # 业务层
+│       │   ├── entities/         # 业务实体
+│       │   ├── repositories/     # 仓储接口
+│       │   └── usecases/         # 用例
+│       └── presentation/         # 表现层
+│           ├── bloc/             # 状态管理
+│           ├── pages/            # 页面
+│           └── widgets/          # 组件
+└── main.dart                     # 应用入口
 ```
 
-### 功能模块结构
+### 依赖关系
 
-每个功能模块应遵循以下结构：
-
-```
-feature_name/
-├── data/
-│   ├── datasources/
-│   │   ├── feature_local_datasource.dart
-│   │   └── feature_remote_datasource.dart
-│   ├── models/
-│   │   └── feature_model.dart
-│   └── repositories/
-│       └── feature_repository_impl.dart
-├── domain/
-│   ├── entities/
-│   │   └── feature_entity.dart
-│   ├── repositories/
-│   │   └── feature_repository.dart
-│   └── usecases/
-│       └── get_feature_usecase.dart
-└── presentation/
-    ├── pages/
-    │   └── feature_page.dart
-    ├── widgets/
-    │   └── feature_widget.dart
-    └── providers/
-        └── feature_provider.dart
+```mermaid
+graph TD
+    A[Presentation Layer] --> B[Domain Layer]
+    C[Data Layer] --> B
+    B --> D[Core Layer]
+    A --> D
+    C --> D
 ```
 
 ## 📝 编码规范
 
-### Dart 编码规范
+### 命名规范
 
-1. **命名规范**
+1. **文件和目录**: `snake_case`
+   ```
+   learning_repository_impl.dart
+   get_lessons_usecase.dart
+   ```
+
+2. **类名**: `PascalCase`
    ```dart
-   // 类名：PascalCase
-   class UserProfile {}
-   
-   // 变量名：camelCase
-   String userName = 'John';
-   
-   // 常量：lowerCamelCase
-   const double maxWidth = 400.0;
-   
-   // 私有成员：下划线前缀
-   String _privateField;
+   class LearningRepositoryImpl
+   class GetLessonsUseCase
    ```
 
-2. **文件命名**
-   ```
-   // 文件名：snake_case
-   user_profile_page.dart
-   learning_progress_widget.dart
-   ```
-
-3. **导入顺序**
+3. **变量和方法**: `camelCase`
    ```dart
-   // 1. Dart 核心库
+   final userProgress = 0.75;
+   void updateLessonProgress() {}
+   ```
+
+4. **常量**: `lowerCamelCase`
+   ```dart
+   const maxRetryAttempts = 3;
+   ```
+
+### 代码结构
+
+1. **导入顺序**
+   ```dart
+   // Dart 核心库
    import 'dart:async';
-   import 'dart:io';
    
-   // 2. Flutter 库
+   // Flutter 框架
    import 'package:flutter/material.dart';
-   import 'package:flutter/services.dart';
    
-   // 3. 第三方包
-   import 'package:provider/provider.dart';
-   import 'package:go_router/go_router.dart';
+   // 第三方包
+   import 'package:dartz/dartz.dart';
+   import 'package:equatable/equatable.dart';
    
-   // 4. 项目内部导入
-   import '../core/theme/app_theme.dart';
-   import '../shared/widgets/custom_button.dart';
+   // 项目内部导入
+   import '../../../core/error/failures.dart';
+   import '../entities/lesson.dart';
    ```
 
-### Widget 编写规范
-
-1. **StatelessWidget 优先**
+2. **类结构**
    ```dart
-   class MyWidget extends StatelessWidget {
-     const MyWidget({super.key, required this.title});
+   class ExampleClass {
+     // 1. 静态常量
+     static const String defaultValue = 'default';
      
+     // 2. 实例变量
      final String title;
+     final int count;
      
-     @override
-     Widget build(BuildContext context) {
-       return Container(
-         child: Text(title),
-       );
-     }
-   }
-   ```
-
-2. **构造函数规范**
-   ```dart
-   class CustomButton extends StatelessWidget {
-     const CustomButton({
-       super.key,
-       required this.onPressed,
-       required this.text,
-       this.isLoading = false,
-       this.backgroundColor,
+     // 3. 构造函数
+     const ExampleClass({
+       required this.title,
+       required this.count,
      });
      
-     final VoidCallback onPressed;
-     final String text;
-     final bool isLoading;
-     final Color? backgroundColor;
+     // 4. 公共方法
+     void publicMethod() {}
+     
+     // 5. 私有方法
+     void _privateMethod() {}
    }
    ```
 
-3. **Build 方法优化**
+## 🔍 代码质量
+
+### 静态分析配置
+
+`analysis_options.yaml` 配置：
+
+```yaml
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # 启用额外规则
+    prefer_const_constructors: true
+    prefer_const_literals_to_create_immutables: true
+    avoid_print: true
+    avoid_unnecessary_containers: true
+    
+    # 禁用某些规则
+    file_names: false
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+  
+  errors:
+    # 将警告视为错误
+    unused_import: error
+    dead_code: error
+```
+
+### 代码质量检查
+
+```bash
+# 运行静态分析
+flutter analyze
+
+# 检查代码格式
+dart format --set-exit-if-changed .
+
+# 运行所有测试
+flutter test
+
+# 生成测试覆盖率
+flutter test --coverage
+```
+
+### 最新代码质量修复
+
+#### 🔧 已修复的问题
+
+1. **返回类型错误修复**
    ```dart
-   @override
-   Widget build(BuildContext context) {
-     final theme = Theme.of(context);
-     final responsive = ResponsiveUtils(context);
-     
-     return Scaffold(
-       body: _buildBody(context),
-       bottomNavigationBar: _buildBottomNavigation(),
-     );
+   // 修复前
+   Future<List<Lesson>> searchLessons() {
+     return lessonsResult; // 类型不匹配
    }
    
-   Widget _buildBody(BuildContext context) {
-     // 复杂的 UI 逻辑拆分到私有方法
+   // 修复后
+   Future<Either<Failure, List<Lesson>>> searchLessons() {
+     return lessonsResult.fold(
+       (failure) => Left(failure),
+       (lessons) => Right(lessons),
+     );
    }
+   ```
+
+2. **文档注释HTML标签修复**
+   ```dart
+   // 修复前
+   /// 返回 Either<Failure, Type> 表示成功或失败
+   
+   // 修复后
+   /// 返回 `Either<Failure, Type>` 表示成功或失败
+   ```
+
+3. **未使用导入清理**
+   ```dart
+   // 修复前
+   import 'package:dartz/dartz.dart'; // 未使用
+   import '../entities/lesson.dart';
+   
+   // 修复后
+   import '../entities/lesson.dart';
+   ```
+
+4. **废弃API替换**
+   ```dart
+   // 修复前
+   final semanticsOwner = tester.binding.pipelineOwner.semanticsOwner;
+   
+   // 修复后
+   final semanticsEnabled = SemanticsBinding.instance.semanticsEnabled;
    ```
 
 ## 🔄 Git 工作流
@@ -220,24 +267,26 @@ feature_name/
 ### 分支策略
 
 ```
-main                 # 主分支，生产环境代码
-├── develop         # 开发分支
-├── feature/xxx     # 功能分支
-├── bugfix/xxx      # 修复分支
-└── release/xxx     # 发布分支
+main                    # 主分支，生产环境代码
+├── develop            # 开发分支
+│   ├── feature/xxx    # 功能分支
+│   ├── bugfix/xxx     # 修复分支
+│   └── hotfix/xxx     # 热修复分支
 ```
 
-### 提交信息规范
+### 提交规范
+
+使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
 
 ```
-<type>(<scope>): <subject>
+<type>[optional scope]: <description>
 
-<body>
+[optional body]
 
-<footer>
+[optional footer(s)]
 ```
 
-**Type 类型：**
+**类型说明：**
 - `feat`: 新功能
 - `fix`: 修复bug
 - `docs`: 文档更新
@@ -247,107 +296,108 @@ main                 # 主分支，生产环境代码
 - `chore`: 构建过程或辅助工具的变动
 
 **示例：**
-```
-feat(home): add responsive layout for iPad landscape mode
-
-- Implement ResponsiveUtils for screen size detection
-- Add tablet-specific sidebar and header components
-- Update theme system with tablet spacing constants
-- Optimize screen orientation preferences
-
-Closes #123
+```bash
+git commit -m "feat(learning): 添加课程搜索功能"
+git commit -m "fix(home): 修复导航栏跳转问题"
+git commit -m "docs: 更新开发指南"
 ```
 
-### 开发流程
+### 代码提交流程
 
-1. **创建功能分支**
-   ```bash
-   git checkout develop
-   git pull origin develop
-   git checkout -b feature/learning-progress
-   ```
+```bash
+# 1. 创建功能分支
+git checkout -b feature/lesson-search
 
-2. **开发和提交**
-   ```bash
-   # 开发代码...
-   git add .
-   git commit -m "feat(learning): implement progress tracking system"
-   ```
+# 2. 开发功能
+# ... 编写代码 ...
 
-3. **推送和创建PR**
-   ```bash
-   git push origin feature/learning-progress
-   # 在GitHub上创建Pull Request
-   ```
+# 3. 代码质量检查
+flutter analyze
+flutter test
+dart format .
+
+# 4. 提交代码
+git add .
+git commit -m "feat(learning): 实现课程搜索功能"
+
+# 5. 推送分支
+git push origin feature/lesson-search
+
+# 6. 创建 Pull Request
+```
 
 ## 🧪 测试策略
 
 ### 测试金字塔
 
 ```
-    /\     E2E Tests (少量)
-   /  \    
-  /____\   Integration Tests (适量)
- /______\  Unit Tests (大量)
+        /\     E2E Tests (少量)
+       /  \    
+      /____\   Integration Tests (适量)
+     /      \  
+    /________\ Unit Tests (大量)
 ```
 
 ### 单元测试
 
 ```dart
-// test/features/home/domain/usecases/get_user_data_test.dart
+// test/features/learning/domain/usecases/get_lessons_usecase_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:dartz/dartz.dart';
 
 void main() {
-  group('GetUserDataUseCase', () {
-    late GetUserDataUseCase usecase;
-    late MockUserRepository mockRepository;
-    
+  group('GetLessonsUseCase', () {
+    late GetLessonsUseCase usecase;
+    late MockLearningRepository mockRepository;
+
     setUp(() {
-      mockRepository = MockUserRepository();
-      usecase = GetUserDataUseCase(mockRepository);
+      mockRepository = MockLearningRepository();
+      usecase = GetLessonsUseCase(mockRepository);
     });
-    
-    test('should return user data when repository call is successful', () async {
+
+    test('should get lessons from repository', () async {
       // arrange
-      const userData = UserEntity(id: '1', name: 'Test User');
-      when(mockRepository.getUserData()).thenAnswer((_) async => userData);
-      
+      final tLessons = [Lesson(id: '1', title: 'Test')];
+      when(mockRepository.getLessons())
+          .thenAnswer((_) async => Right(tLessons));
+
       // act
-      final result = await usecase.call();
-      
+      final result = await usecase(NoParams());
+
       // assert
-      expect(result, userData);
-      verify(mockRepository.getUserData());
+      expect(result, Right(tLessons));
+      verify(mockRepository.getLessons());
+      verifyNoMoreInteractions(mockRepository);
     });
   });
 }
 ```
 
-### Widget 测试
+### 组件测试
 
 ```dart
-// test/features/home/presentation/widgets/home_header_test.dart
+// test/features/learning/presentation/widgets/lesson_card_test.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('HomeHeader Widget', () {
-    testWidgets('should display user name correctly', (tester) async {
+  group('LessonCard', () {
+    testWidgets('should display lesson title', (tester) async {
       // arrange
-      const userName = 'Test User';
+      const lesson = Lesson(id: '1', title: 'Test Lesson');
       
       // act
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: HomeHeader(userName: userName),
+            body: LessonCard(lesson: lesson),
           ),
         ),
       );
       
       // assert
-      expect(find.text('欢迎回来，$userName！'), findsOneWidget);
+      expect(find.text('Test Lesson'), findsOneWidget);
     });
   });
 }
@@ -365,18 +415,18 @@ import 'package:star_trek/main.dart' as app;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  
+
   group('App Integration Tests', () {
     testWidgets('complete user flow test', (tester) async {
       app.main();
       await tester.pumpAndSettle();
-      
-      // 测试启动页到首页的流程
-      expect(find.byType(SplashPage), findsOneWidget);
-      
-      await tester.pumpAndSettle(Duration(seconds: 3));
-      
-      expect(find.byType(HomePage), findsOneWidget);
+
+      // 测试导航
+      await tester.tap(find.byIcon(Icons.school));
+      await tester.pumpAndSettle();
+
+      // 验证页面跳转
+      expect(find.text('学习'), findsOneWidget);
     });
   });
 }
@@ -384,70 +434,62 @@ void main() {
 
 ## ⚡ 性能优化
 
-### Widget 性能优化
+### 构建优化
 
 1. **使用 const 构造函数**
    ```dart
-   const Text('Hello World')  // ✅ 好
-   Text('Hello World')        // ❌ 避免
+   // 好的做法
+   const Text('Hello World')
+   const SizedBox(height: 16)
+   
+   // 避免
+   Text('Hello World')
+   SizedBox(height: 16)
    ```
 
-2. **避免在 build 方法中创建对象**
+2. **避免不必要的重建**
    ```dart
-   class MyWidget extends StatelessWidget {
-     // ✅ 好：在类级别定义
-     static const EdgeInsets _padding = EdgeInsets.all(16.0);
-     
-     @override
-     Widget build(BuildContext context) {
-       return Padding(
-         padding: _padding,  // 使用预定义的对象
-         child: Text('Hello'),
-       );
-     }
-   }
-   ```
-
-3. **使用 ListView.builder 处理长列表**
-   ```dart
-   ListView.builder(
-     itemCount: items.length,
-     itemBuilder: (context, index) {
-       return ListTile(title: Text(items[index]));
-     },
+   // 使用 BlocBuilder 的 buildWhen
+   BlocBuilder<LearningBloc, LearningState>(
+     buildWhen: (previous, current) => 
+         previous.lessons != current.lessons,
+     builder: (context, state) => LessonList(lessons: state.lessons),
    )
    ```
 
-### 内存管理
+3. **列表优化**
+   ```dart
+   // 使用 ListView.builder 而不是 ListView
+   ListView.builder(
+     itemCount: lessons.length,
+     itemBuilder: (context, index) => LessonCard(lesson: lessons[index]),
+   )
+   ```
+
+### 内存优化
 
 1. **及时释放资源**
    ```dart
-   class _MyPageState extends State<MyPage> {
-     late AnimationController _controller;
-     
-     @override
-     void initState() {
-       super.initState();
-       _controller = AnimationController(vsync: this);
-     }
+   class _LearningPageState extends State<LearningPage> {
+     late StreamSubscription _subscription;
      
      @override
      void dispose() {
-       _controller.dispose();  // 释放动画控制器
+       _subscription.cancel();
        super.dispose();
      }
    }
    ```
 
-2. **避免内存泄漏**
+2. **使用弱引用**
    ```dart
-   // 使用 WeakReference 或及时取消订阅
-   StreamSubscription? _subscription;
-   
-   @override
-   void dispose() {
-     _subscription?.cancel();
-     super.dispose();
+   // 避免循环引用
+   class LearningBloc {
+     WeakReference<BuildContext>? _contextRef;
+     
+     void setContext(BuildContext context) {
+       _contextRef = WeakReference(context);
+     }
    }
    ```
 
@@ -455,15 +497,24 @@ void main() {
 
 ### Flutter Inspector
 
-1. **在 VS Code 中使用**
-   - `Cmd+Shift+P` → "Flutter: Open Flutter Inspector"
-   - 可视化 Widget 树
-   - 检查布局问题
-
-2. **性能分析**
+1. **启用 Inspector**
    ```bash
-   # 启用性能分析
-   flutter run --profile
+   flutter run --debug
+   ```
+
+2. **常用调试命令**
+   ```bash
+   # 热重载
+   r
+   
+   # 热重启
+   R
+   
+   # 切换性能叠加层
+   p
+   
+   # 切换组件边界显示
+   w
    ```
 
 ### 日志调试
@@ -472,122 +523,115 @@ void main() {
 import 'dart:developer' as developer;
 
 // 使用 log 而不是 print
-developer.log('Debug message', name: 'MyApp');
+developer.log('Debug message', name: 'LearningBloc');
 
 // 条件日志
 assert(() {
-  developer.log('This only runs in debug mode');
+  developer.log('Debug only message');
   return true;
 }());
 ```
 
-### 常用调试命令
+### BLoC 调试
 
-```bash
-# 热重载
-r
-
-# 热重启
-R
-
-# 打开 Flutter Inspector
-w
-
-# 切换性能叠加层
-P
-
-# 切换平台
-o
-```
-
-### Provider/BLoC 错误调试
-
-#### 常见错误：`Could not find the correct Provider<T> above this Widget`
-
-**问题原因**：
-- Widget 无法在其父级 Widget 树中找到对应的 Provider
-- BLoC 未在依赖注入系统中正确注册
-- MultiBlocProvider 配置缺失或错误
-
-**调试步骤**：
-
-1. **检查依赖注入配置**
-   ```dart
-   // 确保在 injection_container.dart 中注册了 BLoC
-   sl.registerFactory(() => HomeBloc(
-     getHomeDataUseCase: sl(),
-     // ... 其他依赖
-   ));
-   ```
-
-2. **检查 MultiBlocProvider 配置**
-   ```dart
-   // 在 main.dart 中确保添加了 BlocProvider
-   MultiBlocProvider(
-     providers: [
-       BlocProvider<HomeBloc>(
-         create: (context) => GetIt.instance<HomeBloc>(),
-       ),
-       // ... 其他 BLoC
-     ],
-     child: MaterialApp.router(...),
-   )
-   ```
-
-3. **检查模块依赖注入初始化**
-   ```dart
-   // 在 main() 函数中确保初始化了模块依赖
-   void main() async {
-     await learning_di.initLearningDependencies();
-     await home_di.initHomeDependencies();  // 确保添加了这行
-     runApp(const StartTrekApp());
-   }
-   ```
-
-4. **验证构造函数参数**
-   ```dart
-   // 确保数据源实现类的构造函数与注册时的参数匹配
-   class HomeLocalDataSourceImpl implements HomeLocalDataSource {
-     // 如果构造函数不需要参数，注册时也不要传参数
-     HomeLocalDataSourceImpl(); // 无参构造函数
-   }
-   
-   // 对应的注册代码
-   sl.registerLazySingleton<HomeLocalDataSource>(
-     () => HomeLocalDataSourceImpl(), // 不传参数
-   );
-   ```
-
-**调试工具**：
 ```dart
-// 在 Widget 中添加调试信息
-class MyWidget extends StatelessWidget {
+class SimpleBlocObserver extends BlocObserver {
   @override
-  Widget build(BuildContext context) {
-    try {
-      final bloc = context.read<HomeBloc>();
-      print('HomeBloc found: ${bloc.runtimeType}');
-      return YourActualWidget();
-    } catch (e) {
-      print('Provider error: $e');
-      return ErrorWidget(e);
-    }
+  void onEvent(BlocBase bloc, Object? event) {
+    super.onEvent(bloc, event);
+    developer.log('Event: $event', name: bloc.runtimeType.toString());
+  }
+
+  @override
+  void onTransition(BlocBase bloc, Transition transition) {
+    super.onTransition(bloc, transition);
+    developer.log('Transition: $transition', name: bloc.runtimeType.toString());
+  }
+
+  @override
+  void onError(BlocBase bloc, Object error, StackTrace stackTrace) {
+    super.onError(bloc, error, stackTrace);
+    developer.log('Error: $error', name: bloc.runtimeType.toString(), error: error, stackTrace: stackTrace);
   }
 }
 ```
 
-## 📚 学习资源
+## 🔧 最新修复记录
 
-### 官方文档
+### 2024-12-19 代码质量全面提升
+
+#### 修复的文件和问题
+
+1. **lib/features/learning/data/repositories/learning_repository_impl.dart**
+   - 修复返回类型不匹配问题
+   - 统一使用 `Either<Failure, Type>` 模式
+   - 改进错误处理逻辑
+
+2. **lib/core/usecases/usecase.dart**
+   - 修复文档注释中的HTML标签问题
+   - 所有泛型类型使用反引号包围
+   - 统一文档注释格式
+
+3. **lib/core/error/failures.dart**
+   - 修复悬空库文档注释问题
+   - 优化错误类型定义
+   - 完善错误信息处理
+
+4. **lib/features/learning/domain/usecases/search_lessons_usecase.dart**
+   - 移除未使用的导入语句
+   - 清理代码依赖关系
+
+5. **integration_test/app_test.dart**
+   - 替换废弃的API调用
+   - 更新Flutter 3.x兼容的语义API
+   - 修复测试兼容性问题
+
+#### 质量改进措施
+
+1. **静态分析通过**
+   - 所有 `flutter analyze` 警告已修复
+   - 代码符合 Dart 和 Flutter 最佳实践
+   - 类型安全得到加强
+
+2. **文档规范化**
+   - 统一文档注释格式
+   - 泛型类型正确使用反引号
+   - 移除HTML标签警告
+
+3. **API兼容性**
+   - 更新废弃API的使用
+   - 确保Flutter 3.x兼容性
+   - 优化测试代码
+
+#### 开发流程改进
+
+1. **代码提交前检查清单**
+   ```bash
+   # 必须通过的检查
+   flutter analyze          # 静态分析
+   dart format --set-exit-if-changed .  # 代码格式
+   flutter test            # 单元测试
+   ```
+
+2. **CI/CD 集成**
+   - 自动运行静态分析
+   - 强制代码格式检查
+   - 测试覆盖率要求
+
+3. **代码审查标准**
+   - 确保类型安全
+   - 检查错误处理
+   - 验证文档完整性
+   - 测试覆盖率要求
+
+## 📚 参考资源
+
 - [Flutter 官方文档](https://flutter.dev/docs)
 - [Dart 语言指南](https://dart.dev/guides)
-- [Flutter 最佳实践](https://flutter.dev/docs/perf/best-practices)
-
-### 推荐阅读
+- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+- [BLoC 模式](https://bloclibrary.dev/)
 - [Effective Dart](https://dart.dev/guides/language/effective-dart)
-- [Flutter 架构指南](https://flutter.dev/docs/development/data-and-backend/state-mgmt/options)
-- [Clean Architecture in Flutter](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
 ---
 
-📝 **注意**: 本文档会随着项目发展持续更新，请定期查看最新版本。
+💡 **提示**: 遇到问题时，首先检查 `flutter doctor` 和 `flutter analyze` 的输出，大多数问题都能通过这些工具快速定位。

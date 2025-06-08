@@ -28,6 +28,8 @@ dependencies:
   path_provider: ^2.1.3
   fl_chart: ^0.68.0
   dartz: ^0.10.1
+  equatable: ^2.0.5
+  freezed_annotation: ^2.4.1
 
 dev_dependencies:
   flutter_test:
@@ -40,6 +42,9 @@ dev_dependencies:
   
   # JSON序列化代码生成
   json_serializable: ^6.7.1
+  
+  # Freezed代码生成
+  freezed: ^2.4.7
 
 flutter:
   uses-material-design: true

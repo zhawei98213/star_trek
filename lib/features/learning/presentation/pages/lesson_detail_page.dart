@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-
 import '../../domain/entities/lesson_entity.dart';
-import '../../domain/usecases/update_lesson_progress_usecase.dart';
+import '../../domain/usecases/get_lessons_usecase.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../bloc/learning_bloc.dart';
+import '../bloc/learning_event.dart';
+import '../../domain/usecases/update_lesson_progress_usecase.dart';
+
+import '../bloc/learning_state.dart';
+
 import '../widgets/lesson_content_widget.dart';
 import '../widgets/lesson_progress_indicator.dart';
 import '../widgets/lesson_actions.dart';
@@ -66,7 +70,13 @@ class _LessonDetailPageState extends State<LessonDetailPage>
   
   /// 加载课程详情
   void _loadLessonDetail() {
-    _learningBloc.add(LoadLessonDetailEvent(widget.lessonId));
+    _learningBloc.add(LearningEvent.loadLessons(
+      GetLessonsParams(
+        ageGroup: null,
+        difficulty: null,
+        type: null,
+      ),
+    ));
   }
   
   /// 开始学习课程
@@ -93,15 +103,14 @@ class _LessonDetailPageState extends State<LessonDetailPage>
   void _restartLesson() {
     if (_currentLesson != null) {
       // 重置课程进度
-      _learningBloc.add(UpdateLessonProgressEvent(
-        UpdateProgressParams(
-          userId: 'current_user_id', // TODO: 从用户状态获取实际用户ID
-          lessonId: _currentLesson!.id,
-          progress: 0.0,
-          status: LessonStatus.notStarted,
-          studyTime: 0,
-        ),
-      ));
+      final params = UpdateProgressParams(
+        userId: 'current_user_id', // TODO: 从用户状态获取实际用户ID
+        lessonId: _currentLesson!.id,
+        progress: 0.0,
+        status: LessonStatus.notStarted,
+        studyTime: 0,
+      );
+      _learningBloc.add(LearningEvent.updateLessonProgress(params));
       
       // 跳转到学习页面
       Navigator.of(context).pushNamed(
@@ -114,7 +123,7 @@ class _LessonDetailPageState extends State<LessonDetailPage>
   /// 收藏/取消收藏课程
   void _toggleBookmark() {
     if (_currentLesson != null) {
-      _learningBloc.add(ToggleLessonBookmarkEvent(_currentLesson!.id));
+      _learningBloc.add(LearningEvent.toggleLessonBookmark(_currentLesson!.id));
     }
   }
   
@@ -124,23 +133,27 @@ class _LessonDetailPageState extends State<LessonDetailPage>
       body: BlocListener<LearningBloc, LearningState>(
         bloc: _learningBloc,
         listener: (context, state) {
-          if (state is LearningLoaded) {
-            // 更新课程信息
-            final lesson = state.lessons.firstWhere(
-              (l) => l.id == widget.lessonId,
-              orElse: () => _currentLesson!,
-            );
-            setState(() {
-              _currentLesson = lesson;
-              _isLoading = false;
-              _error = null;
-            });
-          } else if (state is LearningError) {
-            setState(() {
-              _error = state.message;
-              _isLoading = false;
-            });
-          }
+          state.maybeWhen(
+            loaded: (progress, lessons, searchResults, isSearching, searchQuery, completionResult) {
+              // 更新课程信息
+              final lesson = lessons.firstWhere(
+                (l) => l.id == widget.lessonId,
+                orElse: () => _currentLesson!,
+              );
+              setState(() {
+                _currentLesson = lesson;
+                _isLoading = false;
+                _error = null;
+              });
+            },
+            error: (failure) {
+              setState(() {
+                _error = failure.message;
+                _isLoading = false;
+              });
+            },
+            orElse: () {},
+          );
         },
         child: _buildBody(),
       ),

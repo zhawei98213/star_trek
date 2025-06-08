@@ -1,5 +1,8 @@
+import 'package:equatable/equatable.dart';
+
 /// 失败类型基类
-abstract class Failure {
+
+abstract class Failure extends Equatable {
   final String message;
   final String? code;
   
@@ -9,13 +12,7 @@ abstract class Failure {
   String toString() => 'Failure: $message';
   
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is Failure && other.message == message && other.code == code;
-  }
-  
-  @override
-  int get hashCode => message.hashCode ^ code.hashCode;
+  List<Object?> get props => [message, code];
 }
 
 /// 服务器错误

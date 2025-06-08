@@ -1,3 +1,6 @@
+import 'package:dartz/dartz.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../entities/lesson_entity.dart';
 import '../entities/learning_progress_entity.dart';
 import '../repositories/learning_repository.dart';
@@ -6,7 +9,7 @@ import '../../../../core/constants/app_constants.dart';
 /// 更新课程进度用例
 /// 
 /// 负责处理课程进度更新的业务逻辑
-class UpdateLessonProgressUseCase {
+class UpdateLessonProgressUseCase implements UseCase<UpdateProgressResult, UpdateProgressParams> {
   final LearningRepository _repository;
   
   const UpdateLessonProgressUseCase(this._repository);
@@ -14,87 +17,93 @@ class UpdateLessonProgressUseCase {
   /// 执行更新课程进度
   /// 
   /// [params] 更新参数
-  Future<UpdateProgressResult> execute(UpdateProgressParams params) async {
+  @override
+  Future<Either<Failure, UpdateProgressResult>> call(UpdateProgressParams params) async {
     try {
       // 获取当前课程信息
-      final lesson = await _repository.getLessonById(params.lessonId);
-      if (lesson == null) {
-        return UpdateProgressResult.failure('课程不存在');
-      }
-      
-      // 获取当前学习进度
-      final currentProgress = await _repository.getLearningProgress(params.userId);
-      if (currentProgress == null) {
-        return UpdateProgressResult.failure('用户学习进度不存在');
-      }
-      
-      // 更新课程进度
-      await _repository.updateLessonProgress(
-        params.userId,
-        params.lessonId,
-        params.progress,
-        params.status,
-        score: params.score,
-      );
-      
-      // 计算积分奖励
-      final pointsEarned = _calculatePointsEarned(
-        lesson,
-        params.progress,
-        params.status,
-        params.score,
-      );
-      
-      // 更新学习时长
-      if (params.studyTime > 0) {
-        await _repository.addStudyTime(
-          params.userId,
-          params.studyTime,
-          lesson.type,
-        );
-      }
-      
-      // 添加积分
-      if (pointsEarned > 0) {
-        await _repository.addPoints(
-          params.userId,
-          pointsEarned,
-          _getPointsReason(params.status, lesson.title),
-        );
-      }
-      
-      // 如果课程完成，处理完成逻辑
-      if (params.status == LessonStatus.completed) {
-        await _handleLessonCompletion(
-          params.userId,
-          lesson,
-          params.score ?? 0,
-          params.studyTime,
-        );
-      }
-      
-      // 检查并更新等级
-      final newTotalPoints = currentProgress.totalPoints + pointsEarned;
-      final newLevel = await _repository.checkAndUpdateLevel(
-        params.userId,
-        newTotalPoints,
-      );
-      
-      // 更新连续学习天数
-      final newStreak = await _repository.updateStreakDays(params.userId);
-      
-      // 获取更新后的学习进度
-      final updatedProgress = await _repository.getLearningProgress(params.userId);
-      
-      return UpdateProgressResult.success(
-        pointsEarned: pointsEarned,
-        levelUp: newLevel > currentProgress.currentLevel,
-        newLevel: newLevel,
-        newStreak: newStreak,
-        updatedProgress: updatedProgress,
+      final lessonResult = await _repository.getLessonById(params.lessonId);
+      return await lessonResult.fold(
+        (failure) async => Left(failure),
+        (lesson) async {
+          // 获取当前学习进度
+          final progressResult = await _repository.getLearningProgress(params.userId);
+          return await progressResult.fold(
+            (failure) async => Left(failure),
+            (currentProgress) async {
+              // 更新课程进度
+              await _repository.updateLessonProgress(
+                params.userId,
+                params.lessonId,
+                params.progress,
+                params.status,
+                score: params.score,
+              );
+              
+              // 计算积分奖励
+              final pointsEarned = _calculatePointsEarned(
+                lesson,
+                params.progress,
+                params.status,
+                params.score,
+              );
+              
+              // 更新学习时长
+              if (params.studyTime > 0) {
+                await _repository.addStudyTime(
+                  params.userId,
+                  params.studyTime,
+                  lesson.type,
+                );
+              }
+              
+              // 添加积分
+              if (pointsEarned > 0) {
+                await _repository.addPoints(
+                  params.userId,
+                  pointsEarned,
+                  _getPointsReason(params.status, lesson.title),
+                );
+              }
+              
+              // 如果课程完成，处理完成逻辑
+              if (params.status == LessonStatus.completed) {
+                await _handleLessonCompletion(
+                  params.userId,
+                  lesson,
+                  params.score ?? 0,
+                  params.studyTime,
+                );
+              }
+              
+              // 检查并更新等级
+              final newTotalPoints = currentProgress.totalPoints + pointsEarned;
+              final newLevel = await _repository.checkAndUpdateLevel(
+                params.userId,
+                newTotalPoints,
+              );
+              
+              // 更新连续学习天数
+              final newStreak = await _repository.updateStreakDays(params.userId);
+              
+              // 获取更新后的学习进度
+              final updatedProgressResult = await _repository.getLearningProgress(params.userId);
+              
+              return updatedProgressResult.fold(
+                (failure) => Left(failure),
+                (updatedProgress) => Right(UpdateProgressResult.success(
+                  pointsEarned: pointsEarned,
+                  levelUp: newLevel > currentProgress.currentLevel,
+                  newLevel: newLevel,
+                  newStreak: newStreak,
+                  updatedProgress: updatedProgress,
+                )),
+              );
+            },
+          );
+        },
       );
     } catch (e) {
-      return UpdateProgressResult.failure('更新进度失败: ${e.toString()}');
+      return Left(ServerFailure('更新进度失败: ${e.toString()}'));
     }
   }
   
@@ -292,7 +301,7 @@ class UpdateProgressResult {
     if (isSuccess) {
       return 'UpdateProgressResult.success(points: $pointsEarned, levelUp: $levelUp, level: $newLevel)';
     } else {
-      return 'UpdateProgressResult.failure($errorMessage)';
+      return 'UpdateProgressResult.failure(${errorMessage ?? "Unknown error"})';
     }
   }
 }

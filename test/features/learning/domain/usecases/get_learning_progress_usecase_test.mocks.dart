@@ -3,15 +3,17 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i3;
+import 'dart:async' as _i4;
 
+import 'package:dartz/dartz.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:start_trek/core/error/failures.dart' as _i5;
 import 'package:start_trek/features/learning/domain/entities/learning_progress_entity.dart'
-    as _i5;
+    as _i7;
 import 'package:start_trek/features/learning/domain/entities/lesson_entity.dart'
-    as _i4;
+    as _i6;
 import 'package:start_trek/features/learning/domain/repositories/learning_repository.dart'
-    as _i2;
+    as _i3;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -27,20 +29,30 @@ import 'package:start_trek/features/learning/domain/repositories/learning_reposi
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
 
+class _FakeEither_0<L, R> extends _i1.SmartFake implements _i2.Either<L, R> {
+  _FakeEither_0(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
 /// A class which mocks [LearningRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockLearningRepository extends _i1.Mock
-    implements _i2.LearningRepository {
+    implements _i3.LearningRepository {
   MockLearningRepository() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i3.Future<List<_i4.LessonEntity>> getLessons({
-    _i4.AgeGroup? ageGroup,
-    _i4.DifficultyLevel? difficulty,
-    _i4.LessonType? type,
+  _i4.Future<_i2.Either<_i5.Failure, List<_i6.LessonEntity>>> getLessons({
+    _i6.AgeGroup? ageGroup,
+    _i6.DifficultyLevel? difficulty,
+    _i6.LessonType? type,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -53,21 +65,43 @@ class MockLearningRepository extends _i1.Mock
           },
         ),
         returnValue:
-            _i3.Future<List<_i4.LessonEntity>>.value(<_i4.LessonEntity>[]),
-      ) as _i3.Future<List<_i4.LessonEntity>>);
+            _i4.Future<_i2.Either<_i5.Failure, List<_i6.LessonEntity>>>.value(
+                _FakeEither_0<_i5.Failure, List<_i6.LessonEntity>>(
+          this,
+          Invocation.method(
+            #getLessons,
+            [],
+            {
+              #ageGroup: ageGroup,
+              #difficulty: difficulty,
+              #type: type,
+            },
+          ),
+        )),
+      ) as _i4.Future<_i2.Either<_i5.Failure, List<_i6.LessonEntity>>>);
 
   @override
-  _i3.Future<_i4.LessonEntity?> getLessonById(String? lessonId) =>
+  _i4.Future<_i2.Either<_i5.Failure, _i6.LessonEntity>> getLessonById(
+          String? lessonId) =>
       (super.noSuchMethod(
         Invocation.method(
           #getLessonById,
           [lessonId],
         ),
-        returnValue: _i3.Future<_i4.LessonEntity?>.value(),
-      ) as _i3.Future<_i4.LessonEntity?>);
+        returnValue:
+            _i4.Future<_i2.Either<_i5.Failure, _i6.LessonEntity>>.value(
+                _FakeEither_0<_i5.Failure, _i6.LessonEntity>(
+          this,
+          Invocation.method(
+            #getLessonById,
+            [lessonId],
+          ),
+        )),
+      ) as _i4.Future<_i2.Either<_i5.Failure, _i6.LessonEntity>>);
 
   @override
-  _i3.Future<List<_i4.LessonEntity>> getRecommendedLessons(
+  _i4.Future<
+      _i2.Either<_i5.Failure, List<_i6.LessonEntity>>> getRecommendedLessons(
     String? userId, {
     int? limit = 5,
   }) =>
@@ -78,11 +112,19 @@ class MockLearningRepository extends _i1.Mock
           {#limit: limit},
         ),
         returnValue:
-            _i3.Future<List<_i4.LessonEntity>>.value(<_i4.LessonEntity>[]),
-      ) as _i3.Future<List<_i4.LessonEntity>>);
+            _i4.Future<_i2.Either<_i5.Failure, List<_i6.LessonEntity>>>.value(
+                _FakeEither_0<_i5.Failure, List<_i6.LessonEntity>>(
+          this,
+          Invocation.method(
+            #getRecommendedLessons,
+            [userId],
+            {#limit: limit},
+          ),
+        )),
+      ) as _i4.Future<_i2.Either<_i5.Failure, List<_i6.LessonEntity>>>);
 
   @override
-  _i3.Future<List<_i4.LessonEntity>> getRecentLessons(
+  _i4.Future<_i2.Either<_i5.Failure, List<_i6.LessonEntity>>> getRecentLessons(
     String? userId, {
     int? limit = 3,
   }) =>
@@ -93,11 +135,19 @@ class MockLearningRepository extends _i1.Mock
           {#limit: limit},
         ),
         returnValue:
-            _i3.Future<List<_i4.LessonEntity>>.value(<_i4.LessonEntity>[]),
-      ) as _i3.Future<List<_i4.LessonEntity>>);
+            _i4.Future<_i2.Either<_i5.Failure, List<_i6.LessonEntity>>>.value(
+                _FakeEither_0<_i5.Failure, List<_i6.LessonEntity>>(
+          this,
+          Invocation.method(
+            #getRecentLessons,
+            [userId],
+            {#limit: limit},
+          ),
+        )),
+      ) as _i4.Future<_i2.Either<_i5.Failure, List<_i6.LessonEntity>>>);
 
   @override
-  _i3.Future<List<_i4.LessonEntity>> searchLessons(
+  _i4.Future<_i2.Either<_i5.Failure, List<_i6.LessonEntity>>> searchLessons(
     String? query, {
     Map<String, dynamic>? filters,
   }) =>
@@ -108,15 +158,23 @@ class MockLearningRepository extends _i1.Mock
           {#filters: filters},
         ),
         returnValue:
-            _i3.Future<List<_i4.LessonEntity>>.value(<_i4.LessonEntity>[]),
-      ) as _i3.Future<List<_i4.LessonEntity>>);
+            _i4.Future<_i2.Either<_i5.Failure, List<_i6.LessonEntity>>>.value(
+                _FakeEither_0<_i5.Failure, List<_i6.LessonEntity>>(
+          this,
+          Invocation.method(
+            #searchLessons,
+            [query],
+            {#filters: filters},
+          ),
+        )),
+      ) as _i4.Future<_i2.Either<_i5.Failure, List<_i6.LessonEntity>>>);
 
   @override
-  _i3.Future<void> updateLessonProgress(
+  _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>> updateLessonProgress(
     String? userId,
     String? lessonId,
     double? progress,
-    _i4.LessonStatus? status, {
+    _i6.LessonStatus? status, {
     int? score,
   }) =>
       (super.noSuchMethod(
@@ -130,12 +188,24 @@ class MockLearningRepository extends _i1.Mock
           ],
           {#score: score},
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>>.value(
+            _FakeEither_0<_i5.Failure, _i2.Unit>(
+          this,
+          Invocation.method(
+            #updateLessonProgress,
+            [
+              userId,
+              lessonId,
+              progress,
+              status,
+            ],
+            {#score: score},
+          ),
+        )),
+      ) as _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>>);
 
   @override
-  _i3.Future<void> completeLession(
+  _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>> completeLession(
     String? userId,
     String? lessonId,
     int? score,
@@ -151,37 +221,62 @@ class MockLearningRepository extends _i1.Mock
             studyTime,
           ],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>>.value(
+            _FakeEither_0<_i5.Failure, _i2.Unit>(
+          this,
+          Invocation.method(
+            #completeLession,
+            [
+              userId,
+              lessonId,
+              score,
+              studyTime,
+            ],
+          ),
+        )),
+      ) as _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>>);
 
   @override
-  _i3.Future<_i5.LearningProgressEntity?> getLearningProgress(String? userId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getLearningProgress,
-          [userId],
-        ),
-        returnValue: _i3.Future<_i5.LearningProgressEntity?>.value(),
-      ) as _i3.Future<_i5.LearningProgressEntity?>);
+  _i4.Future<_i2.Either<_i5.Failure, _i7.LearningProgressEntity>>
+      getLearningProgress(String? userId) => (super.noSuchMethod(
+            Invocation.method(
+              #getLearningProgress,
+              [userId],
+            ),
+            returnValue: _i4.Future<
+                    _i2.Either<_i5.Failure, _i7.LearningProgressEntity>>.value(
+                _FakeEither_0<_i5.Failure, _i7.LearningProgressEntity>(
+              this,
+              Invocation.method(
+                #getLearningProgress,
+                [userId],
+              ),
+            )),
+          ) as _i4.Future<_i2.Either<_i5.Failure, _i7.LearningProgressEntity>>);
 
   @override
-  _i3.Future<void> updateLearningProgress(
-          _i5.LearningProgressEntity? progress) =>
+  _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>> updateLearningProgress(
+          _i7.LearningProgressEntity? progress) =>
       (super.noSuchMethod(
         Invocation.method(
           #updateLearningProgress,
           [progress],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>>.value(
+            _FakeEither_0<_i5.Failure, _i2.Unit>(
+          this,
+          Invocation.method(
+            #updateLearningProgress,
+            [progress],
+          ),
+        )),
+      ) as _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>>);
 
   @override
-  _i3.Future<void> addStudyTime(
+  _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>> addStudyTime(
     String? userId,
     int? studyTime,
-    _i4.LessonType? lessonType,
+    _i6.LessonType? lessonType,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -192,12 +287,22 @@ class MockLearningRepository extends _i1.Mock
             lessonType,
           ],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>>.value(
+            _FakeEither_0<_i5.Failure, _i2.Unit>(
+          this,
+          Invocation.method(
+            #addStudyTime,
+            [
+              userId,
+              studyTime,
+              lessonType,
+            ],
+          ),
+        )),
+      ) as _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>>);
 
   @override
-  _i3.Future<void> updateDailyGoal(
+  _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>> updateDailyGoal(
     String? userId,
     int? dailyGoal,
   ) =>
@@ -209,12 +314,21 @@ class MockLearningRepository extends _i1.Mock
             dailyGoal,
           ],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>>.value(
+            _FakeEither_0<_i5.Failure, _i2.Unit>(
+          this,
+          Invocation.method(
+            #updateDailyGoal,
+            [
+              userId,
+              dailyGoal,
+            ],
+          ),
+        )),
+      ) as _i4.Future<_i2.Either<_i5.Failure, _i2.Unit>>);
 
   @override
-  _i3.Future<_i5.DailyStudyRecord?> getDailyStudyRecord(
+  _i4.Future<_i7.DailyStudyRecord?> getDailyStudyRecord(
     String? userId,
     DateTime? date,
   ) =>
@@ -226,11 +340,11 @@ class MockLearningRepository extends _i1.Mock
             date,
           ],
         ),
-        returnValue: _i3.Future<_i5.DailyStudyRecord?>.value(),
-      ) as _i3.Future<_i5.DailyStudyRecord?>);
+        returnValue: _i4.Future<_i7.DailyStudyRecord?>.value(),
+      ) as _i4.Future<_i7.DailyStudyRecord?>);
 
   @override
-  _i3.Future<List<_i5.DailyStudyRecord>> getWeeklyStudyRecords(
+  _i4.Future<List<_i7.DailyStudyRecord>> getWeeklyStudyRecords(
     String? userId,
     DateTime? startDate,
   ) =>
@@ -242,12 +356,12 @@ class MockLearningRepository extends _i1.Mock
             startDate,
           ],
         ),
-        returnValue: _i3.Future<List<_i5.DailyStudyRecord>>.value(
-            <_i5.DailyStudyRecord>[]),
-      ) as _i3.Future<List<_i5.DailyStudyRecord>>);
+        returnValue: _i4.Future<List<_i7.DailyStudyRecord>>.value(
+            <_i7.DailyStudyRecord>[]),
+      ) as _i4.Future<List<_i7.DailyStudyRecord>>);
 
   @override
-  _i3.Future<List<_i5.DailyStudyRecord>> getMonthlyStudyRecords(
+  _i4.Future<List<_i7.DailyStudyRecord>> getMonthlyStudyRecords(
     String? userId,
     int? year,
     int? month,
@@ -261,12 +375,12 @@ class MockLearningRepository extends _i1.Mock
             month,
           ],
         ),
-        returnValue: _i3.Future<List<_i5.DailyStudyRecord>>.value(
-            <_i5.DailyStudyRecord>[]),
-      ) as _i3.Future<List<_i5.DailyStudyRecord>>);
+        returnValue: _i4.Future<List<_i7.DailyStudyRecord>>.value(
+            <_i7.DailyStudyRecord>[]),
+      ) as _i4.Future<List<_i7.DailyStudyRecord>>);
 
   @override
-  _i3.Future<int> checkAndUpdateLevel(
+  _i4.Future<int> checkAndUpdateLevel(
     String? userId,
     int? totalPoints,
   ) =>
@@ -278,11 +392,11 @@ class MockLearningRepository extends _i1.Mock
             totalPoints,
           ],
         ),
-        returnValue: _i3.Future<int>.value(0),
-      ) as _i3.Future<int>);
+        returnValue: _i4.Future<int>.value(0),
+      ) as _i4.Future<int>);
 
   @override
-  _i3.Future<void> addPoints(
+  _i4.Future<void> addPoints(
     String? userId,
     int? points,
     String? reason,
@@ -296,62 +410,62 @@ class MockLearningRepository extends _i1.Mock
             reason,
           ],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i3.Future<int> updateStreakDays(String? userId) => (super.noSuchMethod(
+  _i4.Future<int> updateStreakDays(String? userId) => (super.noSuchMethod(
         Invocation.method(
           #updateStreakDays,
           [userId],
         ),
-        returnValue: _i3.Future<int>.value(0),
-      ) as _i3.Future<int>);
+        returnValue: _i4.Future<int>.value(0),
+      ) as _i4.Future<int>);
 
   @override
-  _i3.Future<void> syncToCloud(String? userId) => (super.noSuchMethod(
+  _i4.Future<void> syncToCloud(String? userId) => (super.noSuchMethod(
         Invocation.method(
           #syncToCloud,
           [userId],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i3.Future<void> syncFromCloud(String? userId) => (super.noSuchMethod(
+  _i4.Future<void> syncFromCloud(String? userId) => (super.noSuchMethod(
         Invocation.method(
           #syncFromCloud,
           [userId],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i3.Future<void> clearUserData(String? userId) => (super.noSuchMethod(
+  _i4.Future<void> clearUserData(String? userId) => (super.noSuchMethod(
         Invocation.method(
           #clearUserData,
           [userId],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i3.Future<Map<String, dynamic>> exportUserData(String? userId) =>
+  _i4.Future<Map<String, dynamic>> exportUserData(String? userId) =>
       (super.noSuchMethod(
         Invocation.method(
           #exportUserData,
           [userId],
         ),
         returnValue:
-            _i3.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
-      ) as _i3.Future<Map<String, dynamic>>);
+            _i4.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i4.Future<Map<String, dynamic>>);
 
   @override
-  _i3.Future<void> importUserData(
+  _i4.Future<void> importUserData(
     String? userId,
     Map<String, dynamic>? data,
   ) =>
@@ -363,7 +477,86 @@ class MockLearningRepository extends _i1.Mock
             data,
           ],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<List<_i6.LessonEntity>> getAllLessons() => (super.noSuchMethod(
+        Invocation.method(
+          #getAllLessons,
+          [],
+        ),
+        returnValue:
+            _i4.Future<List<_i6.LessonEntity>>.value(<_i6.LessonEntity>[]),
+      ) as _i4.Future<List<_i6.LessonEntity>>);
+
+  @override
+  _i4.Future<List<_i6.LessonEntity>> getCompletedLessons(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getCompletedLessons,
+          [userId],
+        ),
+        returnValue:
+            _i4.Future<List<_i6.LessonEntity>>.value(<_i6.LessonEntity>[]),
+      ) as _i4.Future<List<_i6.LessonEntity>>);
+
+  @override
+  _i4.Future<int> getTotalLessonsCount() => (super.noSuchMethod(
+        Invocation.method(
+          #getTotalLessonsCount,
+          [],
+        ),
+        returnValue: _i4.Future<int>.value(0),
+      ) as _i4.Future<int>);
+
+  @override
+  _i4.Future<List<_i7.DailyStudyRecord>> getAllStudyRecords(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getAllStudyRecords,
+          [userId],
+        ),
+        returnValue: _i4.Future<List<_i7.DailyStudyRecord>>.value(
+            <_i7.DailyStudyRecord>[]),
+      ) as _i4.Future<List<_i7.DailyStudyRecord>>);
+
+  @override
+  _i4.Future<List<_i7.DailyStudyRecord>> getStudyRecordsInRange(
+    String? userId,
+    DateTime? startDate,
+    DateTime? endDate,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getStudyRecordsInRange,
+          [
+            userId,
+            startDate,
+            endDate,
+          ],
+        ),
+        returnValue: _i4.Future<List<_i7.DailyStudyRecord>>.value(
+            <_i7.DailyStudyRecord>[]),
+      ) as _i4.Future<List<_i7.DailyStudyRecord>>);
+
+  @override
+  _i4.Future<void> unlockLessonsByTypeAndDifficulty(
+    String? userId,
+    _i6.LessonType? type,
+    _i6.DifficultyLevel? difficulty,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #unlockLessonsByTypeAndDifficulty,
+          [
+            userId,
+            type,
+            difficulty,
+          ],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }

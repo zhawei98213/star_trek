@@ -1,61 +1,71 @@
+import 'package:dartz/dartz.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../entities/lesson_entity.dart';
 import '../entities/learning_progress_entity.dart';
 import '../repositories/learning_repository.dart';
-import '../../../../core/error/failures.dart';
-import 'package:dartz/dartz.dart';
+
+/// 获取学习统计用例参数
+class GetLearningStatisticsParams {
+  final String userId;
+  final StatisticsTimeRange timeRange;
+  
+  const GetLearningStatisticsParams({
+    required this.userId,
+    this.timeRange = StatisticsTimeRange.all,
+  });
+}
 
 /// 获取学习统计用例
 /// 
 /// 提供详细的学习数据分析，包括时间分布、进度统计、成就分析等
-class GetLearningStatisticsUseCase {
+class GetLearningStatisticsUseCase implements UseCase<LearningStatistics, GetLearningStatisticsParams> {
   final LearningRepository _repository;
   
   const GetLearningStatisticsUseCase(this._repository);
   
   /// 获取学习统计数据
-  /// 
-  /// [userId] 用户ID
-  /// [timeRange] 时间范围（可选，默认为全部时间）
-  Future<Either<Failure, LearningStatistics>> execute(
-    String userId, {
-    StatisticsTimeRange timeRange = StatisticsTimeRange.all,
-  }) async {
+  @override
+  Future<Either<Failure, LearningStatistics>> call(
+    GetLearningStatisticsParams params,
+  ) async {
     try {
       // 获取基础学习进度
-      final progress = await _repository.getLearningProgress(userId);
-      if (progress == null) {
-        return Left(NotFoundFailure('用户学习进度不存在'));
-      }
-      
-      // 获取用户完成的课程列表
-      final completedLessons = await _repository.getCompletedLessons(userId);
-      
-      // 获取时间范围内的学习记录
-      final studyRecords = await _getStudyRecordsInRange(userId, timeRange);
-      
-      // 计算各项统计数据
-      final timeStats = _calculateTimeStatistics(studyRecords, timeRange);
-      final progressStats = _calculateProgressStatistics(progress, completedLessons);
-      final categoryStats = _calculateCategoryStatistics(progress, completedLessons);
-      final achievementStats = _calculateAchievementStatistics(progress, completedLessons);
-      final streakStats = _calculateStreakStatistics(progress, studyRecords);
-      final performanceStats = _calculatePerformanceStatistics(completedLessons);
-      
-      final statistics = LearningStatistics(
-        userId: userId,
-        timeRange: timeRange,
-        generatedAt: DateTime.now(),
-        timeStatistics: timeStats,
-        progressStatistics: progressStats,
-        categoryStatistics: categoryStats,
-        achievementStatistics: achievementStats,
-        streakStatistics: streakStats,
-        performanceStatistics: performanceStats,
-        totalLessonsAvailable: await _repository.getTotalLessonsCount(),
-        studyRecords: studyRecords,
+      final progressResult = await _repository.getLearningProgress(params.userId);
+      return await progressResult.fold(
+        (failure) async => Left(failure),
+        (progress) async {
+          // 获取用户完成的课程列表
+          final completedLessons = await _repository.getCompletedLessons(params.userId);
+          
+          // 获取时间范围内的学习记录
+          final studyRecords = await _getStudyRecordsInRange(params.userId, params.timeRange);
+          
+          // 计算各项统计数据
+          final timeStats = _calculateTimeStatistics(studyRecords, params.timeRange);
+          final progressStats = _calculateProgressStatistics(progress, completedLessons);
+          final categoryStats = _calculateCategoryStatistics(progress, completedLessons);
+          final achievementStats = _calculateAchievementStatistics(progress, completedLessons);
+          final streakStats = _calculateStreakStatistics(progress, studyRecords);
+          final performanceStats = _calculatePerformanceStatistics(completedLessons);
+          
+          final statistics = LearningStatistics(
+            userId: params.userId,
+            timeRange: params.timeRange,
+            generatedAt: DateTime.now(),
+            timeStatistics: timeStats,
+            progressStatistics: progressStats,
+            categoryStatistics: categoryStats,
+            achievementStatistics: achievementStats,
+            streakStatistics: streakStats,
+            performanceStatistics: performanceStats,
+            totalLessonsAvailable: await _repository.getTotalLessonsCount(),
+            studyRecords: studyRecords,
+          );
+          
+          return Right(statistics);
+        },
       );
-      
-      return Right(statistics);
     } catch (e) {
       return Left(ServerFailure('获取学习统计失败: ${e.toString()}'));
     }

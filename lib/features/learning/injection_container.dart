@@ -85,6 +85,8 @@ Future<void> initLearningDependencies() async {
     getLearningProgressUseCase: sl(),
     getLessonsUseCase: sl(),
     updateLessonProgressUseCase: sl(),
+    completeLessonUseCase: sl(),
+    searchLessonsUseCase: sl(),
   ));
 }
 
